@@ -1,0 +1,39 @@
+{
+  "project_info": {
+    "project_number": "320509996847",
+    "project_id": "chat-app-b1164",
+    "storage_bucket": "chat-app-b1164.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:320509996847:android:37097d8b4ba1632870bbda",
+        "android_client_info": {
+          "package_name": "com.rosez.chat_app"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "320509996847-n31j7mn2umvae1j4ehsk5ip9gpp5j4gl.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBjUAlpp_JsjON1mxgGpjwNG4O-eH5podw"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "320509996847-n31j7mn2umvae1j4ehsk5ip9gpp5j4gl.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
