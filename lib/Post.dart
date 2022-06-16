@@ -1,3 +1,4 @@
+import 'package:chat_app/profilePage.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_database/firebase_database.dart';
 import 'package:flutter/material.dart';
@@ -30,26 +31,57 @@ class _PostState extends State<Post> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+        backgroundColor: Color(0xfff2f3fa),
       body: Column (
         children: [
           Expanded(
-            flex: 25,
-            child: Text("What's up?")
+            flex: 30,
+            child: Text("")
           ),
           Expanded (
             flex: 50,
-              child: TextField(
-                minLines: 10,
-                maxLines: null,
-                controller: textController,
-                obscureText: false,
-                decoration: const InputDecoration(
-                  border: OutlineInputBorder(),
-                  labelText: "",
-                ),
-          )
+              child: Container(
+                margin: EdgeInsets.only(top: 20, bottom: 15, left: 20, right: 20),
+                child: TextField(
+                  minLines: 10,
+                  maxLines: null,
+                  controller: textController,
+                  obscureText: false,
+                  decoration: const InputDecoration(
+                    border: OutlineInputBorder(),
+                    labelText: "How are you feeling today?",
+                  ),
           ),
-          ElevatedButton(onPressed: uploadPost, child: Text("Post"))
+              )
+          ),
+          Expanded(
+            flex: 10,
+            child: Container(
+              margin: EdgeInsets.only(right: 20),
+              child: Row(
+                  mainAxisAlignment: MainAxisAlignment.end,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  ElevatedButton(onPressed: (){
+                    uploadPost().then((value){
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(builder: (context) => const ProfilePage()),
+                      );
+                    });
+                  },
+                      style: ElevatedButton.styleFrom(
+                          primary: Color(0xff7986cb)
+                      ),
+                      child: Text("Post")),
+                ],
+              ),
+            ),
+          ),
+          Expanded(
+            flex: 10,
+            child: Text(""),
+          )
         ]
       )
     );

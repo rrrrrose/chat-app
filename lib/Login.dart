@@ -20,83 +20,99 @@ class _LoginState extends State<Login> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-        appBar: AppBar(
-          title: Text("Login"),
-        ) ,
-        body: Center(
-          child: Padding(
-            padding: const EdgeInsets.only(left: 25, right: 25),
-            child: Column (
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Column(
-                    children: [
-                      Text("Email"),
-                      TextField(
-                        controller: emailController,
-                        obscureText: false,
-                      ),
-                    ],
-                  ),
-
-                  TextField(
-                    controller: passwordController,
+        body: ListView(
+          children: [
+            Image (
+              image: NetworkImage("https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTUUGDOIUUTqmg966WQYfUxgIfGNFfxgjOxbfDbLAQxrAKL3KLGNKHs7YDmChitSnTI48M&usqp=CAU"),
+            ),
+            Container(
+              margin: EdgeInsets.only(top: 0, bottom: 10),
+              child: const Text(
+                "Login",
+                style: TextStyle(
+                  fontSize: 45,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ),
+            Column(
+              children: [
+                if (loginFailed)
+                  Text("Login Failed."),
+                Container(
+                  margin: EdgeInsets.only(top: 20, bottom: 15, left: 20, right: 20),
+                  child: TextField(
+                    controller: emailController,
                     obscureText: false,
                     decoration: const InputDecoration(
                       border: OutlineInputBorder(),
-                      labelText: "Password",
+                      labelText: "Email",
                     ),
                   ),
-                  if (loginFailed)
-                    Text("Login Failed."),
-                  ElevatedButton(onPressed: (){
-                    FirebaseAuth.instance.signInWithEmailAndPassword(
-                        email: emailController.text,
-                        password: passwordController.text
-                    ).then((value) {
-                      print("You have successfully logged in.");
+                ),
+                TextField(
+                  controller: passwordController,
+                  obscureText: true,
+                  decoration: const InputDecoration(
+                    border: OutlineInputBorder(),
+                    labelText: "Password",
+                  ),
+                ),
+              ],
+            ),
+            Column(
+              children: [
+                Container(
+                  margin: EdgeInsets.only(top: 15, bottom: 15),
+                  width: 200,
+                  height: 50,
+                  child: ElevatedButton(
+                      style: ElevatedButton.styleFrom(
+                          primary: Color(0xff7986cb)
+                      ),
+                      onPressed: (){
+                        FirebaseAuth.instance.signInWithEmailAndPassword(
+                            email: emailController.text,
+                            password: passwordController.text
+                        ).then((value) {
+                          print("You have successfully logged in.");
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(builder: (context) => const ProfilePage()),
+                          );
+                        }).catchError((error){
+                          print("You failed to login.");
+                          setState((){
+                            loginFailed = true;
+                          });
+                        });
+                      }, child: const Text(
+                      "Login",
+                      style: TextStyle (
+                        fontSize: 22,
+                      )
+                  )),
+                ),
+                TextButton(
+                    style: TextButton.styleFrom(
+                        primary: Color(0xff7986cb)
+                    ),
+                    onPressed: (){
                       Navigator.push(
                         context,
-                        MaterialPageRoute(builder: (context) => const ProfilePage()),
+                        MaterialPageRoute(builder: (context) => const SignUp()),
                       );
-                    }).catchError((error){
-                      print("You failed to login.");
-                      setState((){
-                        loginFailed = true;
-                      });
-                    });
-                  }, child: Text("Login")),
-                  ElevatedButton(onPressed: (){
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(builder: (context) => const SignUp()),
-                    );
-                  }, child: Text("Signup")),
-                  ElevatedButton(onPressed: (){
-                    FirebaseDatabase.instance.ref().child("students/Victor").once().then((event) {
-                      var info = event.snapshot.value as Map;
-                      print(info["Age"]);
-                      print(info["GPA"]);
-                    }).catchError((error){
-                      print("You failed to load information." + error.toString());
-                    });
-                  }, child: Text("Button")),
-                  ElevatedButton(onPressed: (){
-                    FirebaseDatabase.instance.ref().child("students/Rose").set(
-                      {
-                        "Name" : "Rose",
-                        "Class" : "6",
-                      }
-                    ).then((event) {
-                      print("You've successfully inputted info.");
-                    }).catchError((error){
-                      print("You failed to input information." + error.toString());
-                    });
-                  }, child: Text("Button2"))
+                    }, child: const Text(
+                  "Don't have an account? Sign up here",
+                  style: TextStyle(
+                    fontSize: 18,
+                    decoration: TextDecoration.underline,
+                  ),
 
-                ]
+                )),
+              ],
             ),
-          ),
+          ],
         )
     );
   }
