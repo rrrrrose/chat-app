@@ -1,3 +1,4 @@
+
 import 'package:chat_app/basics.dart';
 import 'package:chat_app/profilePage.dart';
 import 'package:firebase_auth/firebase_auth.dart';
@@ -14,6 +15,19 @@ class SignUp extends StatefulWidget {
 }
 
 class _SignUpState extends State<SignUp> {
+
+  bool validateName(String username) {
+    if (username.length > 18)
+      {
+        setState((){
+          signUpFailed = true;
+          failureMessage = "Username cannot exceed 18 characters.";
+        });
+        return false;
+      }
+    return true;
+  }
+
   Future<void> setData() async{
     String UID = FirebaseAuth.instance.currentUser!.uid;
     await FirebaseDatabase.instance.ref().child("userProfile/"+UID).set(
@@ -44,6 +58,11 @@ class _SignUpState extends State<SignUp> {
       print("You have successfully created an user.");
     }).catchError((error){
       print("You failed to create an user.");
+
+      setState((){
+        signUpFailed = true;
+        failureMessage = "Failed to create user.";
+      });
     });
   }
 
@@ -52,6 +71,8 @@ class _SignUpState extends State<SignUp> {
   TextEditingController usernameController = TextEditingController();
 
   bool signUpFailed = false;
+  String failureMessage = "";
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -83,7 +104,7 @@ class _SignUpState extends State<SignUp> {
                   ),
                 ),
                 if (signUpFailed)
-                  Text("Signup Failed."),
+                  Text(failureMessage),
                 Container(
                   margin: EdgeInsets.only(top: 15, bottom: 25, left: 40, right: 40),
                   child: TextField(
@@ -106,8 +127,6 @@ class _SignUpState extends State<SignUp> {
                     ),
                   ),
                 ),
-                if (signUpFailed)
-                  Text("Signup Failed."),
                 Container(
                   margin: EdgeInsets.only(top: 15, bottom: 15),
                   width: 200,
@@ -117,9 +136,12 @@ class _SignUpState extends State<SignUp> {
                           primary: Color(0xff7986cb)
                       ),
                       onPressed: (){
-                    createUser().then((value){
-                      signin().then((value){
-                        setData().then((value){
+                        if (usernameController.text.isNotEmpty && validateName(usernameController.text)) createUser().
+                    then((value){
+                      signin().
+                      then((value){
+                        setData().
+                        then((value){
                           Navigator.push(
                             context,
                             MaterialPageRoute(builder: (context) => const ProfilePage()),

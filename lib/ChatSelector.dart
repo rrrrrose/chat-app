@@ -1,6 +1,8 @@
 import 'package:chat_app/basics.dart';
 import 'package:firebase_database/firebase_database.dart';
+import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_profile_picture/flutter_profile_picture.dart';
 
 import 'Chat.dart';
 
@@ -19,6 +21,7 @@ class _ChatSelectorState extends State<ChatSelector> {
 
   List<String> UIDs = [];
   List<String> PartnerNames = [];
+  List<ProfilePicture> profilePics = [];
 
   Future <void> GrabChatPartners() async
   {
@@ -42,12 +45,50 @@ class _ChatSelectorState extends State<ChatSelector> {
     }).catchError((error){
       print("You failed to print user profile:" + error.toString());
     });
+
+    await GetAllImages();
   }
 
-  Widget UserButton(String name, String UID) {
-    var thisImageWidget;
+  Future<void> GetAllImages() async {
+    int i = 0;
+    while (i < UIDs.length)
+      {
+        await GetImage(i).then((value){
+          i++;
+        });
+      }
+  }
 
-    //grab code here
+  Future <void> GetImage (int index) async {
+    await FirebaseStorage.instance.ref().child("userProfile/" + UIDs[index] + "/" + "pic.jpeg").getDownloadURL()
+        .then((url){
+      setState(() {
+        profilePics.add(
+            ProfilePicture(
+                name: PartnerNames[index],
+                fontsize: 20,
+                radius: 30,
+                img: url,
+              )
+          );
+        }
+      );
+      return;
+    }).catchError((error){
+      print("failed to grab the image" + error.toString());
+      setState(() {
+        profilePics.add(
+            ProfilePicture(
+              name: PartnerNames[index],
+              fontsize: 20,
+              radius: 30,
+            )
+        );
+      });
+    });
+  }
+
+  Widget UserButton(String name, String UID, ProfilePicture profilePic) {
 
     return SizedBox(
       height: 75,
@@ -67,10 +108,7 @@ class _ChatSelectorState extends State<ChatSelector> {
           children: [
             Container(
                 margin: EdgeInsets.only(top: 7, bottom: 7, left: 7, right: 7),
-                child: ClipOval(
-                  //set thisImageWidget here
-                    child: Image.network('https://upload.wikimedia.org/wikipedia/commons/8/89/Portrait_Placeholder.png')
-                )
+                child: profilePic
             ),
             Padding(
               padding: const EdgeInsets.all(12),
@@ -103,8 +141,9 @@ class _ChatSelectorState extends State<ChatSelector> {
                 padding: const EdgeInsets.all(8),
                 itemCount: UIDs.length,
                 itemBuilder: (BuildContext context, int index) {
-                  return
-                  UserButton(PartnerNames[index], UIDs[index]);
+                  if (index < profilePics.length)
+                    return UserButton(PartnerNames[index], UIDs[index], profilePics[index]);
+                  else return Text("haha could not load");
                 },
                 separatorBuilder: (BuildContext context, int index) => const Divider(),
               )

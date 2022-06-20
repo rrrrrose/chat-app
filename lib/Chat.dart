@@ -3,7 +3,9 @@ import 'package:chat_app/basics.dart';
 import 'package:date_format/date_format.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_database/firebase_database.dart';
+import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_profile_picture/flutter_profile_picture.dart';
 class Chat extends StatefulWidget {
   const Chat({Key? key}) : super(key: key);
   static String partnerUID = "";
@@ -23,6 +25,7 @@ class _ChatState extends State<Chat> {
   String currentUsersName = "";
   String partnersName = "";
   ScrollController listScrollController = ScrollController();
+  var partnerImage;
 
   _ChatState()
   {
@@ -34,6 +37,8 @@ class _ChatState extends State<Chat> {
 
     //get user names
     GetUsername();
+
+    GetImage();
 
     //update chat logs whenever firebase changes
     FirebaseDatabase.instance.ref().child("userChat/" + convoName).onChildAdded.listen((event) {
@@ -174,7 +179,7 @@ class _ChatState extends State<Chat> {
                 child: Container(
                     width: 50,
                     height: 50,
-                    child: ClipOval(child: Image.network('https://upload.wikimedia.org/wikipedia/commons/8/89/Portrait_Placeholder.png'))
+                    child: ClipOval(child: partnerImage)
                 ),
               ),
               Column(
@@ -222,12 +227,29 @@ class _ChatState extends State<Chat> {
 
   }
 
+  Future<void> GetImage() async {
+    await FirebaseStorage.instance.ref().child("userProfile/" + partnerUID + "/" + "pic.jpeg").getDownloadURL()
+        .then((url){
+      setState(() {
+        partnerImage =
+        ProfilePicture(
+          name: partnersName,
+          fontsize: 20,
+          radius: 40,
+          img: url,
+        );
+      });
+      return;
+    }).catchError((error){
+      print("failed to grab the image" + error.toString());
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text(Chat.partnerUID),
+        title: Text(partnersName),
       ),
       body: Column(
         children: [

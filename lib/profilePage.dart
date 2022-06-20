@@ -6,6 +6,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_database/firebase_database.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_profile_picture/flutter_profile_picture.dart';
 import 'package:image_picker/image_picker.dart';
 
 import 'ChatSelector.dart';
@@ -31,6 +32,10 @@ class _ProfilePageState extends State<ProfilePage> {
   String description = "";
   List<String> date = [];
   List<String> content = [];
+
+  bool validateName(String username) {
+    return (username.length < 19);
+  }
 
   Widget generatePostVisual(int index)
   {
@@ -176,7 +181,7 @@ class _ProfilePageState extends State<ProfilePage> {
           onPressed: () {
 
 
-            if (usernameController.text.isNotEmpty) changeUsername(usernameController.text);
+            if (usernameController.text.isNotEmpty && validateName(usernameController.text)) changeUsername(usernameController.text);
             if (descriptionController.text.isNotEmpty) changeDescription(descriptionController.text);
             if (image != null) changeProfilePic();
 
@@ -237,7 +242,12 @@ class _ProfilePageState extends State<ProfilePage> {
         .then((url){
           print("grabbed the image");
           setState(() {
-            imageWidget =  Image.network(url);
+            imageWidget =  ProfilePicture(
+              name: name,
+              fontsize: 20,
+              radius: 50,
+              img: url
+            );
           });
           return;
     }).catchError((error){
@@ -288,9 +298,11 @@ class _ProfilePageState extends State<ProfilePage> {
                               decoration: BoxDecoration(
                                 shape: BoxShape.circle,
                               ), //DOESNT SHOW UP AS ROUND
-                              width: 100,
-                              height: 100,
-                              child: ClipOval(child: imageWidget)
+                              child: ClipRRect(
+                                  child: imageWidget,
+                                  borderRadius: BorderRadius.circular(300.0),
+
+                              )
                           ),
                         ),
 
@@ -307,19 +319,10 @@ class _ProfilePageState extends State<ProfilePage> {
                                           style: const TextStyle(
                                               color: Colors.black,
                                               fontWeight: FontWeight.bold,
-                                              fontSize: 47,
+
                                           )
                                       ),
                                       //EDIT BUTTON
-                                      IconButton(
-                                          onPressed: () {
-                                            showDialog(
-                                              context: context,
-                                              builder: (BuildContext context) => _buildPopupDialog(context),
-                                            );
-                                          },
-                                        icon: Icon(Icons.edit, size: 33),
-                                      )
                                     ]
                                 ),
                               ),
@@ -329,9 +332,19 @@ class _ProfilePageState extends State<ProfilePage> {
                                   style: const TextStyle(
                                       color: Colors.black,
                                       fontWeight: FontWeight.bold,
-                                      fontSize: 36,
+
                                   )
                               ),
+
+                              IconButton(
+                                onPressed: () {
+                                  showDialog(
+                                    context: context,
+                                    builder: (BuildContext context) => _buildPopupDialog(context),
+                                  );
+                                },
+                                icon: Icon(Icons.edit, size: 33),
+                              )
                             ]
                         )
                       ]
