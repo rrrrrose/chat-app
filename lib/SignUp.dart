@@ -103,10 +103,8 @@ class _SignUpState extends State<SignUp> {
                     ),
                   ),
                 ),
-                if (signUpFailed)
-                  Text(failureMessage),
                 Container(
-                  margin: EdgeInsets.only(top: 15, bottom: 25, left: 40, right: 40),
+                  margin: EdgeInsets.only(top: 20, bottom: 25, left: 40, right: 40),
                   child: TextField(
                     controller: usernameController,
                     obscureText: false,
@@ -117,7 +115,7 @@ class _SignUpState extends State<SignUp> {
                   ),
                 ),
                 Container(
-                  margin: EdgeInsets.only(top: 15, bottom: 25, left: 40, right: 40),
+                  margin: EdgeInsets.only(top: 10, bottom: 25, left: 40, right: 40),
                   child: TextField(
                     controller: passwordController,
                     obscureText: false,
@@ -127,6 +125,13 @@ class _SignUpState extends State<SignUp> {
                     ),
                   ),
                 ),
+                if (signUpFailed)
+                  Text(
+                      failureMessage,
+                      style: TextStyle (
+                        color: Colors.red,
+                      )
+                  ),
                 Container(
                   margin: EdgeInsets.only(top: 15, bottom: 15),
                   width: 200,

@@ -10,10 +10,12 @@ import 'package:flutter_profile_picture/flutter_profile_picture.dart';
 import 'package:image_picker/image_picker.dart';
 
 import 'ChatSelector.dart';
+import 'Login.dart';
 import 'Post.dart';
 import 'basics.dart';
 class ProfilePage extends StatefulWidget {
   const ProfilePage({Key? key}) : super(key: key);
+
 
   @override
   State<ProfilePage> createState() => _ProfilePageState();
@@ -35,6 +37,10 @@ class _ProfilePageState extends State<ProfilePage> {
 
   bool validateName(String username) {
     return (username.length < 19);
+  }
+
+  bool validateDescription(String description) {
+    return (description.length < 125);
   }
 
   Widget generatePostVisual(int index)
@@ -106,8 +112,16 @@ class _ProfilePageState extends State<ProfilePage> {
       List<String> grabbedContent = [];
       info.forEach((key, value) {
         grabbedDate.add(key);
-        grabbedContent.add(value);
       });
+
+      //sort timestamps
+      grabbedDate.sort((a,b)=>int.parse(b).compareTo(int.parse(a)));
+
+      //add date based on sorted timestamp
+      for (var timestamp in grabbedDate) {
+        grabbedContent.add(info[timestamp]);
+      }
+
       setState((){
         date = grabbedDate;
         content = grabbedContent;
@@ -154,7 +168,7 @@ class _ProfilePageState extends State<ProfilePage> {
           ),
            TextField(
             minLines: 4,
-            maxLines: null,
+            maxLines: 6,
             controller: descriptionController,
             decoration: InputDecoration(
               border: OutlineInputBorder(),
@@ -177,20 +191,41 @@ class _ProfilePageState extends State<ProfilePage> {
 
       ),
       actions: <Widget>[
-         ElevatedButton(
-          onPressed: () {
+         Column(
+           children: [
+             ElevatedButton(
+              onPressed: () {
 
 
-            if (usernameController.text.isNotEmpty && validateName(usernameController.text)) changeUsername(usernameController.text);
-            if (descriptionController.text.isNotEmpty) changeDescription(descriptionController.text);
-            if (image != null) changeProfilePic();
+                if (usernameController.text.isNotEmpty && validateName(usernameController.text)) changeUsername(usernameController.text);
+                if (descriptionController.text.isNotEmpty && validateDescription(descriptionController.text)) changeDescription(descriptionController.text);
+                if (image != null) changeProfilePic();
 
-            usernameController.text = "";
-            descriptionController.text = "";
-            Navigator.of(context).pop();
-          },
-          child: const Text('Close'),
+                usernameController.text = "";
+                descriptionController.text = "";
+                Navigator.of(context).pop();
+              },
+              child: const Text('Close'),
         ),
+             TextButton(
+                 style: TextButton.styleFrom(
+                     primary: Color(0xff7986cb)
+                 ),
+                 onPressed: (){
+                   Navigator.push(
+                     context,
+                     MaterialPageRoute(builder: (context) => const Login()),
+                   );
+                 }, child: const Text(
+               "Sign Out",
+               style: TextStyle(
+                 fontSize: 15,
+                 decoration: TextDecoration.underline,
+               ),
+
+             )),
+           ],
+         ),
       ],
     );
 
@@ -246,12 +281,21 @@ class _ProfilePageState extends State<ProfilePage> {
               name: name,
               fontsize: 20,
               radius: 50,
-              img: url
+              img: url,
+              random: true,
             );
           });
           return;
     }).catchError((error){
       print("failed to grab the image" + error.toString());
+      setState(() {
+        imageWidget =
+            ProfilePicture(
+              name: name,
+              fontsize: 20,
+              radius: 30,
+        );
+      });
     });
   }
 
@@ -288,68 +332,58 @@ class _ProfilePageState extends State<ProfilePage> {
                 flex: 25,
                 child: Container(
                   color: Color(0xff7986cb),
-                  child: Row(
+                  child: Padding(
+                    padding: const EdgeInsets.only(top: 26, left: 8, right: 8, bottom: 8),
+                    child: Row (
+                      crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        //PROFILE PIC
                         Padding(
-                          padding: const EdgeInsets.all(15),
-                          child: Container(
-                            margin: EdgeInsets.only(left: 10),
-                              decoration: BoxDecoration(
-                                shape: BoxShape.circle,
-                              ), //DOESNT SHOW UP AS ROUND
-                              child: ClipRRect(
-                                  child: imageWidget,
-                                  borderRadius: BorderRadius.circular(300.0),
-
-                              )
+                          padding: const EdgeInsets.all(10),
+                          child: Container (
+                            width: 100,
+                              height: 100,
+                              child: imageWidget,
                           ),
                         ),
-
-                        Column(
+                        Expanded(
+                          child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              //USERNAME + EDIT BUTTON
-                              Expanded(
-                                child: Row (
-                                    children: [
-                                      //USERNAME
-                                      Text(
-                                          name,
-                                          style: const TextStyle(
-                                              color: Colors.black,
-                                              fontWeight: FontWeight.bold,
-
+                              Row(
+                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                children: [
+                                  Expanded(
+                                    child: Container(
+                                      height: 40,
+                                      child: FittedBox(
+                                        fit: BoxFit.contain,
+                                        child: Text(
+                                            name,
+                                          style: TextStyle(
+                                            fontWeight: FontWeight.bold,
                                           )
+                                        ),
                                       ),
-                                      //EDIT BUTTON
-                                    ]
-                                ),
+                                    ),
+                                  ),
+                                  IconButton(onPressed: (){
+                                    showDialog(
+                                      context: context,
+                                      builder: (BuildContext context) => _buildPopupDialog(context),
+                                    );
+                                  }, icon: Icon(Icons.settings))
+                                ],
                               ),
-                              //DESCRIPTION
-                              Text(
-                                  description,
-                                  style: const TextStyle(
-                                      color: Colors.black,
-                                      fontWeight: FontWeight.bold,
-
-                                  )
-                              ),
-
-                              IconButton(
-                                onPressed: () {
-                                  showDialog(
-                                    context: context,
-                                    builder: (BuildContext context) => _buildPopupDialog(context),
-                                  );
-                                },
-                                icon: Icon(Icons.edit, size: 33),
+                              Flexible(
+                                  child:
+                                  Text(description)
                               )
-                            ]
+                            ],
+                          ),
                         )
-                      ]
-
-                  ),
+                      ],
+                    ),
+                  )
                 )
             ),
             Container(

@@ -25,22 +25,22 @@ class _LoginState extends State<Login> {
             Image (
               image: NetworkImage("https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTUUGDOIUUTqmg966WQYfUxgIfGNFfxgjOxbfDbLAQxrAKL3KLGNKHs7YDmChitSnTI48M&usqp=CAU"),
             ),
-            Container(
-              margin: EdgeInsets.only(top: 0, bottom: 10),
-              child: const Text(
-                "Login",
-                style: TextStyle(
-                  fontSize: 45,
-                  fontWeight: FontWeight.bold,
+            Center(
+              child: Container(
+                margin: EdgeInsets.only(top: 0, bottom: 10),
+                child: const Text(
+                  "Login",
+                  style: TextStyle(
+                    fontSize: 45,
+                    fontWeight: FontWeight.bold,
+                  ),
                 ),
               ),
             ),
             Column(
               children: [
-                if (loginFailed)
-                  Text("Login Failed."),
                 Container(
-                  margin: EdgeInsets.only(top: 20, bottom: 15, left: 20, right: 20),
+                  margin: EdgeInsets.only(top: 20, bottom: 1, left: 35, right: 35),
                   child: TextField(
                     controller: emailController,
                     obscureText: false,
@@ -50,14 +50,24 @@ class _LoginState extends State<Login> {
                     ),
                   ),
                 ),
-                TextField(
-                  controller: passwordController,
-                  obscureText: true,
-                  decoration: const InputDecoration(
-                    border: OutlineInputBorder(),
-                    labelText: "Password",
+                Container(
+                  margin: EdgeInsets.only(top: 20, bottom: 10, left: 35, right: 35),
+                  child: TextField(
+                    controller: passwordController,
+                    obscureText: true,
+                    decoration: const InputDecoration(
+                      border: OutlineInputBorder(),
+                      labelText: "Password",
+                    ),
                   ),
                 ),
+                if (loginFailed)
+                  Text(
+                      "Wrong username or password. Try again.",
+                      style: TextStyle (
+                        color: Colors.red,
+                      )
+                  ),
               ],
             ),
             Column(

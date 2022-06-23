@@ -130,11 +130,9 @@ class _ChatSelectorState extends State<ChatSelector> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: Text ("Chat Selector"),
-      ),
       body: Column(
         children: [
+          createTopTextWithColor('Chat Selector',Color(0xff7986cb) ),
           Expanded(
               flex: 80,
               child: ListView.separated(
