@@ -1,4 +1,5 @@
 import 'package:chat_app/basics.dart';
+import 'dart:math';
 import 'package:firebase_database/firebase_database.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter/material.dart';
@@ -17,6 +18,12 @@ class _ChatSelectorState extends State<ChatSelector> {
 
   _ChatSelectorState () {
     GrabChatPartners();
+
+    //update chat logs whenever firebase changes
+    FirebaseDatabase.instance.ref().child("userFriend/" + getUID()).onChildAdded.listen((event) {
+      GrabChatPartners();
+    });
+
   }
 
   List<String> UIDs = [];
@@ -25,19 +32,34 @@ class _ChatSelectorState extends State<ChatSelector> {
 
   Future <void> GrabChatPartners() async
   {
+    List<String> uid1 = [];
+    List<String> partner1 = [];
+
+    //1. Get a list of all friends from FirebaseDatabase
+    await FirebaseDatabase.instance.ref().child("userFriend/" + getUID()).once()
+        .then((event) {
+      print("Successfully grabbed your list of friends");
+      var friends = event.snapshot.value as Map;
+
+      friends.forEach((key, value) {
+        print(key.toString());
+        uid1.add(key);
+      });
+    }).catchError((error){
+      print("You failed to grab your list of friends:" + error.toString());
+    });
+
+    //2. Look up friend UIDS through FirebaseDatabase to get names
+
     await FirebaseDatabase.instance.ref().child("userProfile").once()
         .then((event) {
           print("Successfully grabbed user profiles");
           var profiles = event.snapshot.value as Map;
-          List<String> uid1 = [];
           List<String> partner1 = [];
-          profiles.forEach((key, value) {
-            print(key.toString() + " " + value.toString());
-            if (key != getUID()){
-            uid1.add(key.toString());
-            partner1.add(value["Username"]);
-            }
-          });
+          for(String u in uid1){
+            partner1.add(profiles[u]['Username']);
+          }
+
           setState (() {
             UIDs = uid1;
             PartnerNames = partner1;
@@ -45,7 +67,6 @@ class _ChatSelectorState extends State<ChatSelector> {
     }).catchError((error){
       print("You failed to print user profile:" + error.toString());
     });
-
     await GetAllImages();
   }
 
@@ -127,6 +148,94 @@ class _ChatSelectorState extends State<ChatSelector> {
     );
   }
 
+  Future <dynamic> debugFriendsSelector() async {
+    List<String> UIDS = [];
+    List<String> partners = [];
+    List<String> descriptions = [];
+
+    await FirebaseDatabase.instance.ref().child("userProfile").once()
+        .then((event) {
+      print("Successfully grabbed user profiles");
+      var profiles = event.snapshot.value as Map;
+      profiles.forEach((key, value) {
+        print(key.toString() + " " + value.toString());
+        if (key != getUID()){
+          UIDS.add(key.toString());
+          partners.add(value["Username"]);
+          descriptions.add(value["Description"]);
+        }
+      });
+    }).catchError((error){
+      print("You failed to print user profile:" + error.toString());
+    });
+
+    //randomly pick value between 0 and UIDS.length
+    int index = Random().nextInt(UIDS.length);
+
+
+    //save lists at random value into variables
+    String pickedUID = UIDS[index];
+    String pickedName = partners[index];
+    String pickedDescription = descriptions[index];
+
+    print(pickedUID);
+    print(pickedName);
+    print(pickedDescription);
+
+    return [pickedUID, pickedName, pickedDescription];
+
+
+
+  }
+
+  Future <void> addFriend(String UID) async {
+    FirebaseDatabase.instance.ref().child("userFriend/"+getUID()).update(
+        {
+          UID : UID,
+        }
+    ).then((event) {
+      print("You've successfully added the friend.");
+    }).catchError((error){
+      print("You failed to add the friend." + error.toString());
+    });
+  }
+
+
+  Widget _buildPopupDialog(BuildContext context, String UID, String username, String description) {
+    return AlertDialog(
+      title: Text('Recommended Friends'),
+      content: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(username),
+          Text(description),
+          ]
+      ),
+      actions: <Widget>[
+        Column(
+          children: [
+            ElevatedButton(
+              onPressed: () {
+                addFriend(UID);
+                Navigator.of(context).pop();
+              },
+              child: const Text('Add'),
+            ),
+            ElevatedButton(
+              onPressed: () {
+                Navigator.of(context).pop();
+
+              },
+              child: const Text('Close'),
+            ),
+          ],
+        ),
+      ],
+    );
+
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -147,6 +256,17 @@ class _ChatSelectorState extends State<ChatSelector> {
               )
           )
         ],
+      ),
+      floatingActionButton: FloatingActionButton(
+        onPressed: () {
+          debugFriendsSelector().then((value){
+            showDialog(
+            context: context,
+            builder: (BuildContext context) => _buildPopupDialog(context, value[0], value[1], value[2]),
+            );
+          });
+        },
+        child: Icon(Icons.person_add),
       ),
     );
   }

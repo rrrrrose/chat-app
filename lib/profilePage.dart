@@ -377,7 +377,8 @@ class _ProfilePageState extends State<ProfilePage> {
                               Flexible(
                                   child:
                                   Text(description)
-                              )
+                              ),
+                              Text(content.length.toString(), style: TextStyle(fontSize: 24),)
                             ],
                           ),
                         )
