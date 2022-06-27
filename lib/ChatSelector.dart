@@ -19,11 +19,6 @@ class _ChatSelectorState extends State<ChatSelector> {
   _ChatSelectorState () {
     GrabChatPartners();
 
-    //update chat logs whenever firebase changes
-    FirebaseDatabase.instance.ref().child("userFriend/" + getUID()).onChildChanged.listen((event){
-      GrabChatPartners();
-    });
-
   }
 
   List<String> UIDs = [];
@@ -173,7 +168,7 @@ class _ChatSelectorState extends State<ChatSelector> {
                 mainAxisAlignment: MainAxisAlignment.end,
                 children: [
                   IconButton(onPressed: (){
-                    removeFriend(UID);
+                      removeFriend(UID);
                   }, icon: Icon(Icons.delete))
                 ],
               ),

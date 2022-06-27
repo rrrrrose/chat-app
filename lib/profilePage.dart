@@ -191,7 +191,8 @@ class _ProfilePageState extends State<ProfilePage> {
 
       ),
       actions: <Widget>[
-         Column(
+         Row(
+           mainAxisAlignment: MainAxisAlignment.end,
            children: [
              ElevatedButton(
               onPressed: () {
