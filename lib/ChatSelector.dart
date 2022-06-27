@@ -20,7 +20,7 @@ class _ChatSelectorState extends State<ChatSelector> {
     GrabChatPartners();
 
     //update chat logs whenever firebase changes
-    FirebaseDatabase.instance.ref().child("userFriend/" + getUID()).onChildAdded.listen((event) {
+    FirebaseDatabase.instance.ref().child("userFriend/" + getUID()).onChildChanged.listen((event){
       GrabChatPartners();
     });
 
@@ -168,6 +168,17 @@ class _ChatSelectorState extends State<ChatSelector> {
                   )
               ),
             ),
+            Expanded(
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.end,
+                children: [
+                  IconButton(onPressed: (){
+                    removeFriend(UID);
+                  }, icon: Icon(Icons.delete))
+                ],
+              ),
+            )
+
           ],
         ),
 
@@ -186,7 +197,12 @@ class _ChatSelectorState extends State<ChatSelector> {
       var profiles = event.snapshot.value as Map;
       profiles.forEach((key, value) {
         print(key.toString() + " " + value.toString());
-        if (key != getUID()){
+        bool isFriend = false;
+        for (String UID in UIDs ){
+          if (UID == key.toString())
+            isFriend = true;
+        }
+        if (key != getUID() && isFriend == false){
           UIDS.add(key.toString());
           partners.add(value["Username"]);
           descriptions.add(value["Description"]);
@@ -213,6 +229,16 @@ class _ChatSelectorState extends State<ChatSelector> {
 
 
 
+  }
+
+  Future <void> removeFriend(String UID) async {
+    FirebaseDatabase.instance.ref().child("userFriend/" + getUID()).child(UID).remove()
+        .then((event){
+          print("You successfully removed friend.");
+    })
+        .catchError((error){
+          print("You failed to remove friend.");
+    });
   }
 
   Future <void> addFriend(String UID) async {
