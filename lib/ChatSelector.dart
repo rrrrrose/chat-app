@@ -74,8 +74,35 @@ class _ChatSelectorState extends State<ChatSelector> {
     int i = 0;
     while (i < UIDs.length)
       {
-        await GetImage(i).then((value){
-          i++;
+        await FirebaseStorage.instance.ref().child("userProfile/" + UIDs[i] + "/" + "pic.jpeg").getDownloadURL()
+            .then((url){
+          setState(() {
+            profilePics.add(
+                ProfilePicture(
+                  name: PartnerNames[i],
+                  fontsize: 20,
+                  radius: 30,
+                  img: url,
+                )
+            );
+
+            i++;
+          }
+          );
+          return;
+        }).catchError((error){
+          print("failed to grab the image");
+          setState(() {
+            profilePics.add(
+                ProfilePicture(
+                  name: PartnerNames[i],
+                  fontsize: 20,
+                  radius: 30,
+                )
+            );
+
+            i++;
+          });
         });
       }
   }
@@ -96,7 +123,7 @@ class _ChatSelectorState extends State<ChatSelector> {
       );
       return;
     }).catchError((error){
-      print("failed to grab the image" + error.toString());
+      print("failed to grab the image");
       setState(() {
         profilePics.add(
             ProfilePicture(
@@ -208,7 +235,15 @@ class _ChatSelectorState extends State<ChatSelector> {
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(username),
+          Text(
+              username,
+              style: TextStyle(
+                  fontSize: 20,
+                  height: 1.5,
+                  fontWeight: FontWeight.bold
+
+            )
+          ),
           Text(description),
           ]
       ),
@@ -216,6 +251,9 @@ class _ChatSelectorState extends State<ChatSelector> {
         Column(
           children: [
             ElevatedButton(
+              style: ElevatedButton.styleFrom(
+                primary: Color(0xff7986cb)
+              ),
               onPressed: () {
                 addFriend(UID);
                 Navigator.of(context).pop();
@@ -223,6 +261,9 @@ class _ChatSelectorState extends State<ChatSelector> {
               child: const Text('Add'),
             ),
             ElevatedButton(
+              style: ElevatedButton.styleFrom(
+                  primary: Color(0xff7986cb)
+              ),
               onPressed: () {
                 Navigator.of(context).pop();
 
@@ -258,6 +299,7 @@ class _ChatSelectorState extends State<ChatSelector> {
         ],
       ),
       floatingActionButton: FloatingActionButton(
+        backgroundColor: Color(0xff7986cb),
         onPressed: () {
           debugFriendsSelector().then((value){
             showDialog(
