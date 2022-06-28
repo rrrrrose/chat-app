@@ -19,6 +19,10 @@ class _ChatSelectorState extends State<ChatSelector> {
   _ChatSelectorState () {
     GrabChatPartners();
 
+    FirebaseDatabase.instance.ref().child("userFriend").child(getUID()).onChildAdded.listen((event) {
+      print("Friend Added");
+      GrabChatPartners();
+    });
   }
 
   List<String> UIDs = [];
@@ -45,7 +49,6 @@ class _ChatSelectorState extends State<ChatSelector> {
     });
 
     //2. Look up friend UIDS through FirebaseDatabase to get names
-
     await FirebaseDatabase.instance.ref().child("userProfile").once()
         .then((event) {
           print("Successfully grabbed user profiles");
@@ -62,77 +65,9 @@ class _ChatSelectorState extends State<ChatSelector> {
     }).catchError((error){
       print("You failed to print user profile:" + error.toString());
     });
-    await GetAllImages();
   }
 
-  Future<void> GetAllImages() async {
-    int i = 0;
-    while (i < UIDs.length)
-      {
-        await FirebaseStorage.instance.ref().child("userProfile/" + UIDs[i] + "/" + "pic.jpeg").getDownloadURL()
-            .then((url){
-          setState(() {
-            profilePics.add(
-                ProfilePicture(
-                  name: PartnerNames[i],
-                  fontsize: 20,
-                  radius: 30,
-                  img: url,
-                )
-            );
-
-            i++;
-          }
-          );
-          return;
-        }).catchError((error){
-          print("failed to grab the image");
-          setState(() {
-            profilePics.add(
-                ProfilePicture(
-                  name: PartnerNames[i],
-                  fontsize: 20,
-                  radius: 30,
-                )
-            );
-
-            i++;
-          });
-        });
-      }
-  }
-
-  Future <void> GetImage (int index) async {
-    await FirebaseStorage.instance.ref().child("userProfile/" + UIDs[index] + "/" + "pic.jpeg").getDownloadURL()
-        .then((url){
-      setState(() {
-        profilePics.add(
-            ProfilePicture(
-                name: PartnerNames[index],
-                fontsize: 20,
-                radius: 30,
-                img: url,
-              )
-          );
-        }
-      );
-      return;
-    }).catchError((error){
-      print("failed to grab the image");
-      setState(() {
-        profilePics.add(
-            ProfilePicture(
-              name: PartnerNames[index],
-              fontsize: 20,
-              radius: 30,
-            )
-        );
-      });
-    });
-  }
-
-  Widget UserButton(String name, String UID, ProfilePicture profilePic) {
-
+  Widget UserButton(String name, String UID) {
     return SizedBox(
       height: 75,
       child: ElevatedButton(
@@ -151,7 +86,7 @@ class _ChatSelectorState extends State<ChatSelector> {
           children: [
             Container(
                 margin: EdgeInsets.only(top: 7, bottom: 7, left: 7, right: 7),
-                child: profilePic
+                //child: profilePic
             ),
             Padding(
               padding: const EdgeInsets.all(12),
@@ -168,15 +103,13 @@ class _ChatSelectorState extends State<ChatSelector> {
                 mainAxisAlignment: MainAxisAlignment.end,
                 children: [
                   IconButton(onPressed: (){
-                      removeFriend(UID);
+                      removeFriend(UID).then((value) => GrabChatPartners());
                   }, icon: Icon(Icons.delete))
                 ],
               ),
             )
-
           ],
         ),
-
       ),
     );
   }
@@ -221,9 +154,6 @@ class _ChatSelectorState extends State<ChatSelector> {
     print(pickedDescription);
 
     return [pickedUID, pickedName, pickedDescription];
-
-
-
   }
 
   Future <void> removeFriend(String UID) async {
@@ -262,7 +192,6 @@ class _ChatSelectorState extends State<ChatSelector> {
                   fontSize: 20,
                   height: 1.5,
                   fontWeight: FontWeight.bold
-
             )
           ),
           Text(description),
@@ -310,9 +239,9 @@ class _ChatSelectorState extends State<ChatSelector> {
                 padding: const EdgeInsets.all(8),
                 itemCount: UIDs.length,
                 itemBuilder: (BuildContext context, int index) {
-                  if (index < profilePics.length)
-                    return UserButton(PartnerNames[index], UIDs[index], profilePics[index]);
-                  else return Text("haha could not load");
+                  //if (index < profilePics.length)
+                    return UserButton(PartnerNames[index], UIDs[index]);
+                  //else return Text("haha could not load");
                 },
                 separatorBuilder: (BuildContext context, int index) => const Divider(),
               )
