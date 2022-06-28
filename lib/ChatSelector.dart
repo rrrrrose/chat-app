@@ -18,11 +18,6 @@ class _ChatSelectorState extends State<ChatSelector> {
 
   _ChatSelectorState () {
     GrabChatPartners();
-
-    FirebaseDatabase.instance.ref().child("userFriend").child(getUID()).onChildAdded.listen((event) {
-      print("Friend Added");
-      GrabChatPartners();
-    });
   }
 
   List<String> UIDs = [];
@@ -65,9 +60,47 @@ class _ChatSelectorState extends State<ChatSelector> {
     }).catchError((error){
       print("You failed to print user profile:" + error.toString());
     });
+    
+    //3. Generate profile picture per friend UID
+    await getAllImages();
+    print("Profile Pics: " + profilePics.length.toString());
+
+    //4. Reload page
+    setState(() {});
+  }
+  
+  Future<void> getAllImages() async {
+    for(int i = 0; i<UIDs.length; i++)
+      {
+        print(i.toString());
+        await getImage(i);
+      }
+  }
+  
+  Future<void> getImage(int index) async {
+    String UIDToLookUp = UIDs[index];
+    await FirebaseStorage.instance.ref().child("userProfile").child(UIDToLookUp).child("pic.jpeg").getDownloadURL()
+    .then((url) {
+      profilePics.add(
+          ProfilePicture(
+            name: PartnerNames[index],
+            fontsize: 20,
+            radius: 30,
+            img: url,
+          )
+      );
+    }).catchError((error) {
+      profilePics.add(
+          ProfilePicture(
+            name: PartnerNames[index],
+            fontsize: 20,
+            radius: 30,
+          )
+      );
+    });
   }
 
-  Widget UserButton(String name, String UID) {
+  Widget UserButton(String name, String UID, ProfilePicture pic) {
     return SizedBox(
       height: 75,
       child: ElevatedButton(
@@ -86,7 +119,7 @@ class _ChatSelectorState extends State<ChatSelector> {
           children: [
             Container(
                 margin: EdgeInsets.only(top: 7, bottom: 7, left: 7, right: 7),
-                //child: profilePic
+                child: pic
             ),
             Padding(
               padding: const EdgeInsets.all(12),
@@ -205,8 +238,11 @@ class _ChatSelectorState extends State<ChatSelector> {
                 primary: Color(0xff7986cb)
               ),
               onPressed: () {
-                addFriend(UID);
-                Navigator.of(context).pop();
+                addFriend(UID).then((value) {
+                  GrabChatPartners().then((value) {
+                    Navigator.of(context).pop();
+                  });
+                });
               },
               child: const Text('Add'),
             ),
@@ -216,7 +252,6 @@ class _ChatSelectorState extends State<ChatSelector> {
               ),
               onPressed: () {
                 Navigator.of(context).pop();
-
               },
               child: const Text('Close'),
             ),
@@ -239,9 +274,9 @@ class _ChatSelectorState extends State<ChatSelector> {
                 padding: const EdgeInsets.all(8),
                 itemCount: UIDs.length,
                 itemBuilder: (BuildContext context, int index) {
-                  //if (index < profilePics.length)
-                    return UserButton(PartnerNames[index], UIDs[index]);
-                  //else return Text("haha could not load");
+                  if (index < profilePics.length)
+                    return UserButton(PartnerNames[index], UIDs[index], profilePics[index]);
+                  else return Text("Loading...");
                 },
                 separatorBuilder: (BuildContext context, int index) => const Divider(),
               )
@@ -253,8 +288,8 @@ class _ChatSelectorState extends State<ChatSelector> {
         onPressed: () {
           debugFriendsSelector().then((value){
             showDialog(
-            context: context,
-            builder: (BuildContext context) => _buildPopupDialog(context, value[0], value[1], value[2]),
+              context: context,
+              builder: (BuildContext context) => _buildPopupDialog(context, value[0], value[1], value[2]),
             );
           });
         },
