@@ -70,6 +70,8 @@ class _ChatSelectorState extends State<ChatSelector> {
   }
   
   Future<void> getAllImages() async {
+    profilePics.clear();
+
     for(int i = 0; i<UIDs.length; i++)
       {
         print(i.toString());
