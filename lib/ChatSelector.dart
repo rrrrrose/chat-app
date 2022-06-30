@@ -107,7 +107,11 @@ class _ChatSelectorState extends State<ChatSelector> {
       height: 75,
       child: ElevatedButton(
         style: ElevatedButton.styleFrom(
-            primary: Color(0xff7986cb)
+            primary: Color(0xFFa5add6),
+          shape: RoundedRectangleBorder(
+            side: BorderSide(color: Color(0xff7986cb), width: 2),
+            borderRadius: BorderRadius.circular(18.0),
+          )
         ),
         onPressed: () {
           print(UID);
@@ -130,6 +134,7 @@ class _ChatSelectorState extends State<ChatSelector> {
                   style: const TextStyle(
                     fontWeight: FontWeight.bold,
                     fontSize: 18,
+                    color: Colors.black,
                   )
               ),
             ),

@@ -46,7 +46,14 @@ class _ProfilePageState extends State<ProfilePage> {
   Widget generatePostVisual(int index)
   {
     return Container(
-      color: Color(0xffc9cfea),
+      decoration: BoxDecoration(
+        color: Color(0xffc9cfea),
+        borderRadius: BorderRadius.all(Radius.circular(20)),
+        border: Border.all(
+              width: 2,
+              color: Color(0xff7986cb)
+          ),
+      ),
       child: Padding(
         padding: const EdgeInsets.all(8.0),
         child: Column(
@@ -379,7 +386,6 @@ class _ProfilePageState extends State<ProfilePage> {
                                   child:
                                   Text(description)
                               ),
-                              Text(content.length.toString(), style: TextStyle(fontSize: 24),)
                             ],
                           ),
                         )

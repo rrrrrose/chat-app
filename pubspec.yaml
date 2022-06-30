@@ -42,6 +42,7 @@ dependencies:
   firebase_storage: ^10.2.17
   image_picker: ^0.8.4+4
   flutter_profile_picture: ^2.0.0
+  flutter_gradients: ^1.0.0+3
 
 dev_dependencies:
   flutter_test:
