@@ -242,6 +242,12 @@ class _ChatState extends State<Chat> {
       return;
     }).catchError((error){
       print("failed to grab the image" + error.toString());
+      partnerImage =
+          ProfilePicture(
+            name: partnersName,
+            fontsize: 20,
+            radius: 40,
+          );
     });
   }
 

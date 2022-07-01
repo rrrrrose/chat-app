@@ -1,6 +1,7 @@
 import 'dart:io';
 import 'dart:ui';
 
+import 'package:chat_app/ChatRequests.dart';
 import 'package:date_format/date_format.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_database/firebase_database.dart';
@@ -428,13 +429,17 @@ class _ProfilePageState extends State<ProfilePage> {
         NavigationDestination(
           icon: Icon(Icons.chat),
         label: 'Chat',
-       ),
-
+        ),
+        NavigationDestination(
+          icon: Icon(Icons.note),
+          label: 'Invitations',
+        ),
        ],
       ),
       body: <Widget>[
         homeScreenUI(),
-        ChatSelector()
+        ChatSelector(),
+        ChatRequests()
       ][currentPageIndex],
     );
 
