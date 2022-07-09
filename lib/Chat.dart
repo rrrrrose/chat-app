@@ -25,7 +25,6 @@ class _ChatState extends State<Chat> {
   String currentUsersName = "";
   String partnersName = "";
   ScrollController listScrollController = ScrollController();
-  var partnerImage;
 
   _ChatState()
   {
@@ -37,8 +36,6 @@ class _ChatState extends State<Chat> {
 
     //get user names
     GetUsername();
-
-    GetImage();
 
     //update chat logs whenever firebase changes
     FirebaseDatabase.instance.ref().child("userChat/" + convoName).onChildAdded.listen((event) {
@@ -174,24 +171,17 @@ class _ChatState extends State<Chat> {
           child: Row(
             mainAxisAlignment: MainAxisAlignment.start,
             children: [
-              Padding(
-                padding: const EdgeInsets.only(right: 8),
-                child: Container(
-                    width: 50,
-                    height: 50,
-                    child: ClipOval(child: partnerImage)
-                ),
-              ),
               Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Container(
                     width: 250,
                     child: Bubble(
-                      color: Colors.yellow[400],
+                      color: Colors.indigo[200],
                       nip: BubbleNip.leftBottom,
                       child: Text(post["content"], style: TextStyle(
                         fontSize: 17,
+
                       ),),
                     ),
 
@@ -225,24 +215,6 @@ class _ChatState extends State<Chat> {
 
     }
 
-  }
-
-  Future<void> GetImage() async {
-    await FirebaseStorage.instance.ref().child("userProfile/" + partnerUID + "/" + "pic.jpeg").getDownloadURL()
-        .then((url){
-      setState(() {
-        partnerImage =
-        ProfilePicture(
-          name: partnersName,
-          fontsize: 20,
-          radius: 40,
-          img: url,
-        );
-      });
-      return;
-    }).catchError((error){
-      print("failed to grab the image" + error.toString());
-    });
   }
 
   @override

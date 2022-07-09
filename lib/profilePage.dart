@@ -1,6 +1,7 @@
 import 'dart:io';
 import 'dart:ui';
 
+import 'package:chat_app/ChatRequests.dart';
 import 'package:date_format/date_format.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_database/firebase_database.dart';
@@ -46,7 +47,14 @@ class _ProfilePageState extends State<ProfilePage> {
   Widget generatePostVisual(int index)
   {
     return Container(
-      color: Color(0xffc9cfea),
+      decoration: BoxDecoration(
+        color: Color(0xffc9cfea),
+        borderRadius: BorderRadius.all(Radius.circular(20)),
+        border: Border.all(
+            width: 2,
+            color: Color(0xff7986cb)
+        ),
+      ),
       child: Padding(
         padding: const EdgeInsets.all(8.0),
         child: Column(
@@ -291,11 +299,7 @@ class _ProfilePageState extends State<ProfilePage> {
       print("failed to grab the image" + error.toString());
       setState(() {
         imageWidget =
-            ProfilePicture(
-              name: name,
-              fontsize: 20,
-              radius: 30,
-        );
+            placeholderImg();
       });
     });
   }
@@ -334,7 +338,7 @@ class _ProfilePageState extends State<ProfilePage> {
                 child: Container(
                   color: Color(0xff7986cb),
                   child: Padding(
-                    padding: const EdgeInsets.only(top: 26, left: 8, right: 8, bottom: 8),
+                    padding: const EdgeInsets.only(top: 40, left: 8, right: 8),
                     child: Row (
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
@@ -379,7 +383,6 @@ class _ProfilePageState extends State<ProfilePage> {
                                   child:
                                   Text(description)
                               ),
-                              Text(content.length.toString(), style: TextStyle(fontSize: 24),)
                             ],
                           ),
                         )
@@ -429,12 +432,17 @@ class _ProfilePageState extends State<ProfilePage> {
           icon: Icon(Icons.chat),
         label: 'Chat',
        ),
+        NavigationDestination(
+          icon: Icon(Icons.person_add),
+          label: 'Invites',
+        ),
 
        ],
       ),
       body: <Widget>[
         homeScreenUI(),
-        ChatSelector()
+        ChatSelector(),
+        ChatRequests()
       ][currentPageIndex],
     );
 

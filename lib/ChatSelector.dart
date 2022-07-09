@@ -1,3 +1,5 @@
+import 'dart:convert';
+import 'package:http/http.dart' as http;
 import 'package:chat_app/basics.dart';
 import 'dart:math';
 import 'package:firebase_database/firebase_database.dart';
@@ -19,11 +21,26 @@ class _ChatSelectorState extends State<ChatSelector> {
   _ChatSelectorState () {
     GrabChatPartners();
 
+    checkPostCount();
+
   }
 
   List<String> UIDs = [];
   List<String> PartnerNames = [];
-  List<ProfilePicture> profilePics = [];
+  List<Widget> profilePics = [];
+  bool canSendRequest = false;
+
+
+  Future <void> checkPostCount() async {
+    FirebaseDatabase.instance.ref().child("userPost").child(getUID()).once().then((event){
+      var info = event.snapshot.value as Map;
+      setState ((){
+        canSendRequest = (info.length > 0);
+      });
+    }).catchError((error){
+      print("Cannot grab post count.");
+    });
+  }
 
   Future <void> GrabChatPartners() async
   {
@@ -62,82 +79,53 @@ class _ChatSelectorState extends State<ChatSelector> {
     }).catchError((error){
       print("You failed to print user profile:" + error.toString());
     });
-    await GetAllImages();
+    await getAllImages();
   }
 
-  Future<void> GetAllImages() async {
-    int i = 0;
-    while (i < UIDs.length)
-      {
-        await FirebaseStorage.instance.ref().child("userProfile/" + UIDs[i] + "/" + "pic.jpeg").getDownloadURL()
-            .then((url){
-          setState(() {
-            profilePics.add(
-                ProfilePicture(
-                  name: PartnerNames[i],
-                  fontsize: 20,
-                  radius: 30,
-                  img: url,
-                )
-            );
+  Future<void> getAllImages() async {
+    profilePics.clear();
 
-            i++;
-          }
-          );
-          return;
-        }).catchError((error){
-          print("failed to grab the image");
-          setState(() {
-            profilePics.add(
-                ProfilePicture(
-                  name: PartnerNames[i],
-                  fontsize: 20,
-                  radius: 30,
-                )
-            );
-
-            i++;
-          });
-        });
-      }
+    for(int i = 0; i<UIDs.length; i++)
+    {
+      print(i.toString());
+      await getImage(i);
+      setState((){});
+    }
   }
 
-  Future <void> GetImage (int index) async {
-    await FirebaseStorage.instance.ref().child("userProfile/" + UIDs[index] + "/" + "pic.jpeg").getDownloadURL()
-        .then((url){
-      setState(() {
-        profilePics.add(
-            ProfilePicture(
-                name: PartnerNames[index],
-                fontsize: 20,
-                radius: 30,
-                img: url,
-              )
-          );
-        }
+  Future<void> getImage(int index) async {
+    String UIDToLookUp = UIDs[index];
+    await FirebaseStorage.instance.ref().child("userProfile").child(UIDToLookUp).child("pic.jpeg").getDownloadURL()
+        .then((url) {
+      profilePics.add(
+          ProfilePicture(
+            name: PartnerNames[index],
+            fontsize: 20,
+            radius: 30,
+            img: url,
+          )
       );
-      return;
-    }).catchError((error){
-      print("failed to grab the image");
-      setState(() {
-        profilePics.add(
-            ProfilePicture(
-              name: PartnerNames[index],
-              fontsize: 20,
-              radius: 30,
-            )
-        );
-      });
+    }).catchError((error) {
+      print("could not add: " + error.toString());
+      profilePics.add(
+          placeholderImg()
+      );
     });
   }
 
-  Widget UserButton(String name, String UID, ProfilePicture profilePic) {
-
+  Widget UserButton(String name, String UID, Widget pic) {
     return SizedBox(
       height: 75,
       child: ElevatedButton(
         style: ElevatedButton.styleFrom(
-            primary: Color(0xff7986cb)
+          primary: Color(0xffc9cfea),
+          shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(20),
+              side: BorderSide(
+                  color: Color(0xff7986cb),
+                  width: 2,
+              )
+          ),
         ),
         onPressed: () {
           print(UID);
@@ -151,7 +139,7 @@ class _ChatSelectorState extends State<ChatSelector> {
           children: [
             Container(
                 margin: EdgeInsets.only(top: 7, bottom: 7, left: 7, right: 7),
-                child: profilePic
+                child: pic
             ),
             Padding(
               padding: const EdgeInsets.all(12),
@@ -160,6 +148,7 @@ class _ChatSelectorState extends State<ChatSelector> {
                   style: const TextStyle(
                     fontWeight: FontWeight.bold,
                     fontSize: 18,
+                    color: Colors.black
                   )
               ),
             ),
@@ -179,6 +168,42 @@ class _ChatSelectorState extends State<ChatSelector> {
 
       ),
     );
+  }
+
+  Future<dynamic> sentimentFriendSelector() async {
+    String url = "https://userpostsentimentanalysis.marisabelchang.repl.co/" + getUID();
+    String pickedUID;
+    String pickedName = "";
+    String pickedDescription = "";
+
+    //Get a UID from the server
+    var response = await http.get(Uri.parse(url));
+    print(response.body.toString());
+    var listData = jsonDecode(response.body.toString());
+
+    pickedUID = listData[0].toString();
+    if (pickedUID == getUID())
+      {
+        pickedUID = listData[1].toString();
+      }
+    print("RESULT: " + listData.toString());
+
+    //Get the username and description
+    await FirebaseDatabase.instance.ref().child("userProfile").child(pickedUID).once()
+        .then((event) {
+      print("Successfully grabbed profile for user " + pickedUID);
+      var profile = event.snapshot.value as Map;
+
+      pickedName = profile["Username"];
+      pickedDescription = profile["Description"];
+
+      print(pickedName);
+      print(pickedDescription);
+    }).catchError((onError) {
+      print("Could not grab user profile for user " + pickedUID);
+    });
+
+    return [pickedUID, pickedName, pickedDescription];
   }
 
   Future <dynamic> debugFriendsSelector() async {
@@ -248,6 +273,23 @@ class _ChatSelectorState extends State<ChatSelector> {
     });
   }
 
+  Widget addButton() {
+    if (canSendRequest)
+      return FloatingActionButton(
+        backgroundColor: Color(0xff7986cb),
+        onPressed: () {
+          sentimentFriendSelector().then((value){
+            showDialog(
+              context: context,
+              builder: (BuildContext context) => _buildPopupDialog(context, value[0], value[1], value[2]),
+            );
+          });
+        },
+        child: Icon(Icons.person_add),
+      );
+    else
+      return Text("You need at least one post");
+  }
 
   Widget _buildPopupDialog(BuildContext context, String UID, String username, String description) {
     return AlertDialog(
@@ -301,9 +343,12 @@ class _ChatSelectorState extends State<ChatSelector> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      appBar: AppBar(
+        title: Text("Chat Selector"),
+        backgroundColor: Color(0xff7986cb),
+      ),
       body: Column(
         children: [
-          createTopTextWithColor('Chat Selector',Color(0xff7986cb) ),
           Expanded(
               flex: 80,
               child: ListView.separated(
@@ -319,18 +364,7 @@ class _ChatSelectorState extends State<ChatSelector> {
           )
         ],
       ),
-      floatingActionButton: FloatingActionButton(
-        backgroundColor: Color(0xff7986cb),
-        onPressed: () {
-          debugFriendsSelector().then((value){
-            showDialog(
-            context: context,
-            builder: (BuildContext context) => _buildPopupDialog(context, value[0], value[1], value[2]),
-            );
-          });
-        },
-        child: Icon(Icons.person_add),
-      ),
+      floatingActionButton: addButton()
     );
   }
 }

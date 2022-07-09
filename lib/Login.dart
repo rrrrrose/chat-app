@@ -23,7 +23,7 @@ class _LoginState extends State<Login> {
         body: ListView(
           children: [
             Image (
-              image: NetworkImage("https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTUUGDOIUUTqmg966WQYfUxgIfGNFfxgjOxbfDbLAQxrAKL3KLGNKHs7YDmChitSnTI48M&usqp=CAU"),
+              image: NetworkImage("https://www.creativefabrica.com/wp-content/uploads/2020/08/25/Chat-Logo-Design-Vector-Isolated-Graphics-5109821-1-1-580x387.jpg"),
             ),
             Center(
               child: Container(

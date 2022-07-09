@@ -54,8 +54,16 @@ class _SignUpState extends State<SignUp> {
     await FirebaseAuth.instance.createUserWithEmailAndPassword(
         email: emailController.text,
         password: passwordController.text
-    ).then((value) {
+    ).then((value) async {
       print("You have successfully created an user.");
+      await signin().then((event) async {
+        await setData().then((event){
+          Navigator.push(
+            context,
+            MaterialPageRoute(builder: (context) => const ProfilePage()),
+          );
+        });
+      });
     }).catchError((error){
       print("You failed to create an user.");
 
@@ -76,10 +84,13 @@ class _SignUpState extends State<SignUp> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      appBar: AppBar(
+        title: Text("Sign Up"),
+        backgroundColor: Color(0xff7986cb),
+      ),
       body: Center(
         child: ListView (
           children: [
-            createTopTextWithColor('',Color(0xff7986cb) ),
             Column(
               children: [
                 Container(
@@ -141,19 +152,7 @@ class _SignUpState extends State<SignUp> {
                           primary: Color(0xff7986cb)
                       ),
                       onPressed: (){
-                        if (usernameController.text.isNotEmpty && validateName(usernameController.text)) createUser().
-                    then((value){
-                      signin().
-                      then((value){
-                        setData().
-                        then((value){
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(builder: (context) => const ProfilePage()),
-                          );
-                        });
-                      });
-                    });
+                        if (usernameController.text.isNotEmpty && validateName(usernameController.text)) createUser();
                   }, child: const Text(
                       "Signup",
                       style: TextStyle (

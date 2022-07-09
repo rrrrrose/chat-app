@@ -6,6 +6,11 @@ String getUID()
   return FirebaseAuth.instance.currentUser!.uid;
 }
 
+Widget placeholderImg()
+{
+  return ClipOval(child: Image.network('https://upload.wikimedia.org/wikipedia/commons/a/ac/Default_pfp.jpg'));
+}
+
 //creates a top bar for screens.
 //String topText - what should the top bar say?
 //Color topColor - what color should the top bar be?
