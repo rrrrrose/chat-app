@@ -22,23 +22,22 @@ class _ChatState extends State<Chat> {
 
   var _posts = [];
 
-  String currentUsersName = "";
   String partnersName = "";
   ScrollController listScrollController = ScrollController();
 
   _ChatState()
   {
     //generate convo name
-    convoName = GenerateConvoName();
-
-    //get chat log
-    GetChatLogs();
+    convoName = generateConvoName(partnerUID);
 
     //get user names
     GetUsername();
 
+    //get chat log
+    GetChatLogs();
+
     //update chat logs whenever firebase changes
-    FirebaseDatabase.instance.ref().child("userChat/" + convoName).onChildAdded.listen((event) {
+    FirebaseDatabase.instance.ref().child("userChat/" + convoName).limitToLast(1).onChildAdded.listen((event) {
       GetChatLogs();
     });
   }
@@ -65,22 +64,6 @@ class _ChatState extends State<Chat> {
   }
   
   Future <void> GetUsername() async {
-    print(convoName);
-
-    String currentUID = FirebaseAuth.instance.currentUser!.uid;
-    print(currentUID);
-    await FirebaseDatabase.instance.ref().child("userProfile/" + currentUID).once()
-    .then((event){
-      print("Found username");
-      var info = event.snapshot.value as Map;
-      setState((){
-        currentUsersName = info["Username"];
-      });
-    }).catchError((error){
-      print("Failed to load username");
-
-    });
-
     print(partnerUID);
     await FirebaseDatabase.instance.ref().child("userProfile/" + partnerUID).once()
         .then((event){
@@ -199,33 +182,39 @@ class _ChatState extends State<Chat> {
           )
       ),
     );
-
-  }
-
-  String GenerateConvoName (){
-    List<String> NameList = [FirebaseAuth.instance.currentUser!.uid, partnerUID];
-    NameList.sort(); //alphabetically
-    return NameList[0] + "-" + NameList[1];
   }
 
   void scrollDown() {
     if (listScrollController.hasClients) {
       final position = listScrollController.position.maxScrollExtent;
       listScrollController.jumpTo(position);
-
     }
-
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: Text(partnersName),
-      ),
       body: Column(
         children: [
           Expanded(
+            flex: 10,
+            child: Container(
+                color: Color(0xff7986cb),
+                width: MediaQuery.of(context).size.width,
+                child: Center(
+                  child: Text(
+                      partnersName,
+                      style: TextStyle(
+                        fontSize: 25,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.white
+                      ),
+                  ),
+                )
+            ),
+          ),
+          Expanded (
+              flex: 90,
               child: ListView.builder(
                 controller: listScrollController,
                 padding: const EdgeInsets.all(8),

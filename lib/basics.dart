@@ -11,6 +11,12 @@ Widget placeholderImg()
   return ClipOval(child: Image.network('https://upload.wikimedia.org/wikipedia/commons/a/ac/Default_pfp.jpg'));
 }
 
+String generateConvoName (String partnerUID){
+  List<String> NameList = [getUID(), partnerUID];
+  NameList.sort(); //alphabetically
+  return NameList[0] + "-" + NameList[1];
+}
+
 //creates a top bar for screens.
 //String topText - what should the top bar say?
 //Color topColor - what color should the top bar be?

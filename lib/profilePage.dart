@@ -27,6 +27,10 @@ class _ProfilePageState extends State<ProfilePage> {
   TextEditingController usernameController = TextEditingController();
   TextEditingController descriptionController = TextEditingController();
 
+  //used to delete account
+  TextEditingController emailController = TextEditingController();
+  TextEditingController passwordController = TextEditingController();
+
   var image;
   var imageWidget;
 
@@ -42,6 +46,196 @@ class _ProfilePageState extends State<ProfilePage> {
 
   bool validateDescription(String description) {
     return (description.length < 125);
+  }
+
+  Widget showDeletionPopUp(BuildContext context) {
+    return AlertDialog(
+      title: Text("Confirm deletion"),
+      content: Text("To confirm deletion, enter in your sign-in credentials:"),
+      actions: <Widget>[
+        TextField(
+          controller: emailController,
+          decoration: const InputDecoration(
+            border: OutlineInputBorder(),
+            hintText: 'Email',
+          ),
+        ),
+        TextField(
+          controller: passwordController,
+          obscureText: true,
+          decoration: const InputDecoration(
+            border: OutlineInputBorder(),
+            hintText: 'Password',
+          ),
+        ),
+        ElevatedButton(
+          onPressed: () {
+            tryDeleteAccount();
+          },
+          child: const Text('Yes, delete my account'),
+        ),
+        ElevatedButton(
+            onPressed: () {
+              Navigator.of(context).pop();
+            },
+            child: Text("No")
+        )
+      ],
+    );
+
+  }
+
+  Future<void> tryDeleteAccount() async {
+    await FirebaseAuth.instance.signInWithEmailAndPassword(
+        email: emailController.text,
+        password: passwordController.text
+    ).then((value) async {
+      print("Account signed in. Deletion verified.");
+      await deleteAccountData();
+    }).catchError((error) {
+      print("Could not delete account: " + error.toString());
+    });
+  }
+
+  Future<void> deleteAuthAccount() async {
+    await FirebaseAuth.instance.currentUser!.delete().then((value) {
+      print("Account successfully deleted.");
+    }).catchError((error) {
+      print("Could not delete account: " + error.toString());
+    });
+  }
+
+  Future<void> deleteAccountData() async {
+    await deleteProfileInfo();
+    await deleteProfilePic();
+    await deletePosts();
+    await deleteChatLogs();
+    await deleteAllFriends();
+    await deleteFriendsList();
+    await deleteInviteList();
+    await deleteAuthAccount();
+
+    await FirebaseAuth.instance.signOut().then((value) {
+      print("signed out");
+    }).catchError((error) {
+      print("could not sign out");
+    });
+
+    Navigator.push(
+      context,
+      MaterialPageRoute(builder: (context) => const Login()),
+    );
+  }
+
+  Future<void> deleteProfileInfo() async {
+    await FirebaseDatabase.instance.ref().child("userProfile").child(getUID()).remove().then((value) {
+      print("Profile info successfully deleted");
+    }).catchError((error) {
+      print("Could not delete profile info: " + error.toString());
+    });
+  }
+
+  Future<void> deletePosts() async {
+    await FirebaseDatabase.instance.ref().child("userPost").child(getUID()).remove().then((value) {
+      print("Posts successfully deleted");
+    }).catchError((error) {
+      print("Could not delete posts: " + error.toString());
+    });
+  }
+
+  Future<void> deleteChatLogs() async {
+    await FirebaseDatabase.instance.ref().child("userFriend").child(getUID()).once().then((event) {
+      //map of all friends
+      var info = event.snapshot.value as Map;
+      List<String> convoPathsToRemove = [];
+
+      info.forEach((friendUID, value) {
+        convoPathsToRemove.add(generateConvoName(friendUID));
+      });
+
+      int index = convoPathsToRemove.length-1;
+      Future.doWhile(() async {
+        await FirebaseDatabase.instance.ref().child("userChat").child(convoPathsToRemove[index]).remove().then((value) {
+          print("Deleted chat log: " + convoPathsToRemove[index]);
+        }).catchError((error) {
+          print("Could not delete chat log: " + error.toString());
+        });
+
+        index--;
+        return (index > 0);
+      });
+
+      print("Deleted all convo logs");
+    }).catchError((error) {
+      print("Could not delete all logs: " + error.toString());
+    });
+  }
+
+  Future<void> deleteFriendsList() async {
+    await FirebaseDatabase.instance.ref().child("userFriend").child(getUID()).remove().then((value) {
+      print("Deleted your friends list.");
+    }).catchError((error) {
+      print("Could not delete your friends list: " + error.toString());
+    });
+  }
+
+  Future<void> deleteAllFriends() async {
+    await FirebaseDatabase.instance.ref().child("userFriend").child(getUID()).once().then((event) {
+      //map of all friends
+      var info = event.snapshot.value as Map;
+      List<String> friendsToRemove = [];
+
+      info.forEach((friendUID, value) {
+        friendsToRemove.add(friendUID);
+      });
+
+      int index = friendsToRemove.length-1;
+      Future.doWhile(() async {
+        await FirebaseDatabase.instance.ref().child("userFriend").child(friendsToRemove[index]).child(getUID()).remove().then((value) {
+          print("found me");
+        }).catchError((error) {
+          print("Could not delete friend: " + error.toString());
+        });
+        
+        index--;
+        return (index > 0);
+      });
+
+      print("Unfriended all friends.");
+    }).catchError((error) {
+      print("Could not unfriend everyone: " + error.toString());
+    });
+  }
+
+  Future<void> deleteProfilePic() async {
+    await FirebaseStorage.instance.ref().child("userProfile/" + getUID() + "/" + "pic.jpeg").delete().then((value) {
+      print("Profile pic successfully deleted");
+    }).catchError((error) {
+      print("Could not delete profile picture: " + error.toString());
+    });
+  }
+  
+  Future<void> deleteInviteList() async {
+    //read all invites
+    //if invite contains "getUID()->", delete that
+    await FirebaseDatabase.instance.ref().child("userInvite").once().
+    then((event) {
+      var info = event.snapshot.value as Map;
+
+      //check to see which ones contain UID
+      info.forEach((path, inviteAccepted) async {
+        if (path.contains(getUID())) {
+          await FirebaseDatabase.instance.ref().child("userInvite").remove().
+          then((value) {
+            print("Invite deleted: " + path);
+          }).catchError((error) {
+            print("Could not delete invite: " + error.toString());
+          });
+        }
+      });
+    }).catchError((error) {
+      print("Could not delete all invites: " + error.toString());
+    });
   }
 
   Widget generatePostVisual(int index)
@@ -227,6 +421,24 @@ class _ProfilePageState extends State<ProfilePage> {
                    );
                  }, child: const Text(
                "Sign Out",
+               style: TextStyle(
+                 fontSize: 15,
+                 decoration: TextDecoration.underline,
+               ),
+
+             )),
+             TextButton(
+                 style: TextButton.styleFrom(
+                     primary: Color(0xff7986cb)
+                 ),
+                 onPressed: (){
+                   Navigator.pop(context);
+                   showDialog(
+                     context: context,
+                     builder: (BuildContext context) => showDeletionPopUp(context),
+                   );
+                 }, child: const Text(
+               "Delete Account",
                style: TextStyle(
                  fontSize: 15,
                  decoration: TextDecoration.underline,

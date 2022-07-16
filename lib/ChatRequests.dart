@@ -26,21 +26,30 @@ class _ChatRequestsState extends State<ChatRequests> {
   }
 
   Future<void> GrabChatInvites() async {
-    List<String> uid1 = [];
-    List<String> partner1 = [];
+    //all temporary lists
+    List<String> temp_uids= [];
+    List<String> temp_partners = [];
+    List<String> temp_descs = [];
 
-    //1. Get a list of all invites from FirebaseDatabase
-    await FirebaseDatabase.instance.ref().child("userInvite/" + getUID()).once()
-        .then((event) {
-      print("Successfully grabbed your list of friends");
-      var friends = event.snapshot.value as Map;
+    //1. Get a list of all invite paths from FirebaseDatabase
+    await FirebaseDatabase.instance.ref().child("userInvite").once().
+    then((event) {
+      var info = event.snapshot.value as Map;
 
-      friends.forEach((key, value) {
-        print(key.toString());
-        uid1.add(key);
+      info.forEach((path, inviteAccepted) {
+        if (inviteAccepted == false && path.contains("->"+getUID()))
+          {
+            print(path + ":" + inviteAccepted.toString());
+            //split the path/isolate last UID
+            List<String> splitPath = path.split("-");
+
+            //add the first part of the path (the other user's UID)
+            temp_uids.add(splitPath.first);
+          }
       });
-    }).catchError((error){
-      print("You failed to grab your list of friends:" + error.toString());
+    }).
+    catchError((error) {
+      print("You failed to grab all invitations:" + error.toString());
     });
 
     //2. Look up friend UIDS through FirebaseDatabase to get names
@@ -48,17 +57,15 @@ class _ChatRequestsState extends State<ChatRequests> {
         .then((event) {
       print("Successfully grabbed user profiles");
       var profiles = event.snapshot.value as Map;
-      List<String> partner1 = [];
-      List<String> description1 = [];
-      for(String u in uid1){
-        partner1.add(profiles[u]['Username']);
-        description1.add(profiles[u]["Description"]);
+      for(String u in temp_uids){
+        temp_partners.add(profiles[u]['Username']);
+        temp_descs.add(profiles[u]["Description"]);
       }
 
       setState (() {
-        UIDs = uid1;
-        PartnerNames = partner1;
-        PartnerDescription = description1;
+        UIDs = temp_uids;
+        PartnerNames = temp_partners;
+        PartnerDescription = temp_descs;
       });
     }).catchError((error){
       print("You failed to print user profile:" + error.toString());
@@ -162,6 +169,19 @@ class _ChatRequestsState extends State<ChatRequests> {
   }
 
   Future <void> addFriend(String UID) async {
+    //generate the path name
+    //the other user sent the invite, so it's their UID, then ours
+    String pathName = UID + "->" + getUID();
+
+    await FirebaseDatabase.instance.ref().child("userInvite").update({
+      pathName : true
+    }).
+    then((value) {
+      print("Invite accepted");
+    }).catchError((error) {
+      print("Invite could not be accepted: " + error.toString());
+    });
+
     //Add this friend to your friends list
     FirebaseDatabase.instance.ref().child("userFriend/"+getUID()).update(
         {
@@ -173,24 +193,7 @@ class _ChatRequestsState extends State<ChatRequests> {
       print("You failed to add the friend." + error.toString());
     });
 
-    //Add yourself to other guy's list
-    FirebaseDatabase.instance.ref().child("userFriend/"+UID).update(
-        {
-          getUID() : getUID(),
-        }
-    ).then((event) {
-      print("Other user's friend's list updated.");
-    }).catchError((error){
-      print("Other user's friend's list failed to update: " + error.toString());
-    });
-
-    //Remove from invites list
-    FirebaseDatabase.instance.ref().child("userInvite").child(getUID()).child(UID).remove()
-    .then((event) {
-      print("Invite accepted");
-    }).catchError((error) {
-      print("Failed to accept the invite " + error.toString());
-    });
+    GrabChatInvites();
   }
 
   @override

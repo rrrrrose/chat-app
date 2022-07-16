@@ -65,7 +65,7 @@ class _SignUpState extends State<SignUp> {
         });
       });
     }).catchError((error){
-      print("You failed to create an user.");
+      print("You failed to create an user: " + error.toString());
 
       setState((){
         signUpFailed = true;

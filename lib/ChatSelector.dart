@@ -19,7 +19,9 @@ class ChatSelector extends StatefulWidget {
 class _ChatSelectorState extends State<ChatSelector> {
 
   _ChatSelectorState () {
-    GrabChatPartners();
+    checkInvites().then((value) {
+      GrabChatPartners();
+    });
 
     checkPostCount();
 
@@ -39,6 +41,44 @@ class _ChatSelectorState extends State<ChatSelector> {
       });
     }).catchError((error){
       print("Cannot grab post count.");
+    });
+  }
+
+  Future<void> checkInvites() async {
+    //read all invites
+    await FirebaseDatabase.instance.ref().child("userInvite").once().
+    then((event) {
+      var info = event.snapshot.value as Map;
+
+      //check to see which ones contain "getUID()->"
+      info.forEach((path, inviteAccepted) async {
+        if (path.contains(getUID()+"->")) {
+          //is it set to true?
+          if (inviteAccepted) {
+            //remove this path
+            await FirebaseDatabase.instance.ref().child("userInvite").child(path).remove().
+            then((value) {
+              print("Removed invite. Both users are now friends");
+            }).catchError((error) {
+              print("Could not remove invite: " + error.toString());
+            });
+
+            //Add this friend to your friends list
+            List<String> splitPath = path.split(">");
+            await FirebaseDatabase.instance.ref().child("userFriend/"+getUID()).update(
+                {
+                  splitPath.last : splitPath.last,
+                }
+            ).then((event) {
+              print("You've successfully added the friend.");
+            }).catchError((error){
+              print("You failed to add the friend." + error.toString());
+            });
+          }
+        }
+      });
+    }).catchError((error) {
+
     });
   }
 
@@ -177,7 +217,10 @@ class _ChatSelectorState extends State<ChatSelector> {
     String pickedDescription = "";
 
     //Get a UID from the server
-    var response = await http.get(Uri.parse(url));
+    var response = await http.get(Uri.parse(url)).
+    catchError((error) {
+      print("Could not get response: " + error.toString());
+    });
     print(response.body.toString());
     var listData = jsonDecode(response.body.toString());
 
@@ -246,49 +289,58 @@ class _ChatSelectorState extends State<ChatSelector> {
     print(pickedDescription);
 
     return [pickedUID, pickedName, pickedDescription];
-
-
-
   }
 
   Future <void> removeFriend(String UID) async {
-    FirebaseDatabase.instance.ref().child("userFriend/" + getUID()).child(UID).remove()
+    //remove friend from your list
+    await FirebaseDatabase.instance.ref().child("userFriend/" + getUID()).child(UID).remove()
         .then((event){
           print("You successfully removed friend.");
+          GrabChatPartners();
     })
         .catchError((error){
           print("You failed to remove friend.");
     });
+
+    //generate the convo name
+    await FirebaseDatabase.instance.ref().child("userChat").child(generateConvoName(UID)).remove()
+    .then((value) {
+      print("Successfully deleted unfriended user's chat log");
+    }).catchError((error) {
+      print("Couldn't delete unfriended user's chat log: " + error.toString());
+    });
   }
 
-  Future <void> addFriend(String UID) async {
-    FirebaseDatabase.instance.ref().child("userFriend/"+getUID()).update(
-        {
-          UID : UID,
-        }
-    ).then((event) {
-      print("You've successfully added the friend.");
-    }).catchError((error){
-      print("You failed to add the friend." + error.toString());
+  Future<void> sendFriendRequest(String UID) async {
+    await FirebaseDatabase.instance.ref().child("userInvite").update({
+      getUID()+"->"+UID : false
+    }).then((value) {
+      print("Invite successful");
+    }).catchError((error) {
+      print("Could not send invite: " + error.toString());
     });
   }
 
   Widget addButton() {
-    if (canSendRequest)
+    if (canSendRequest) {
       return FloatingActionButton(
         backgroundColor: Color(0xff7986cb),
         onPressed: () {
           sentimentFriendSelector().then((value){
-            showDialog(
-              context: context,
-              builder: (BuildContext context) => _buildPopupDialog(context, value[0], value[1], value[2]),
-            );
+            if (mounted)
+              {
+                showDialog(
+                  context: context,
+                  builder: (BuildContext context) => _buildPopupDialog(context, value[0], value[1], value[2]),
+                );
+              }
           });
         },
         child: Icon(Icons.person_add),
       );
-    else
-      return Text("You need at least one post");
+    } else {
+      return const Text("You need at least one post");
+    }
   }
 
   Widget _buildPopupDialog(BuildContext context, String UID, String username, String description) {
@@ -318,10 +370,9 @@ class _ChatSelectorState extends State<ChatSelector> {
                 primary: Color(0xff7986cb)
               ),
               onPressed: () {
-                addFriend(UID);
-                Navigator.of(context).pop();
+                sendFriendRequest(UID).then((value) => Navigator.of(context).pop());
               },
-              child: const Text('Add'),
+              child: const Text('Send Request'),
             ),
             ElevatedButton(
               style: ElevatedButton.styleFrom(
@@ -357,7 +408,7 @@ class _ChatSelectorState extends State<ChatSelector> {
                 itemBuilder: (BuildContext context, int index) {
                   if (index < profilePics.length)
                     return UserButton(PartnerNames[index], UIDs[index], profilePics[index]);
-                  else return Text("haha could not load");
+                  else return Text("Loading...");
                 },
                 separatorBuilder: (BuildContext context, int index) => const Divider(),
               )
