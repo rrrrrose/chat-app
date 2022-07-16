@@ -7,7 +7,7 @@ import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_profile_picture/flutter_profile_picture.dart';
 
-import 'Chat.dart';
+import 'chat.dart';
 
 class ChatSelector extends StatefulWidget {
   const ChatSelector({Key? key}) : super(key: key);
@@ -18,21 +18,20 @@ class ChatSelector extends StatefulWidget {
 
 class _ChatSelectorState extends State<ChatSelector> {
 
-  _ChatSelectorState () {
-    checkInvites().then((value) {
-      GrabChatPartners();
-    });
-
-    checkPostCount();
-
-  }
-
   List<String> UIDs = [];
-  List<String> PartnerNames = [];
+  List<String> partnerNames = [];
   List<Widget> profilePics = [];
   bool canSendRequest = false;
 
+  _ChatSelectorState () {
+    checkInvites().then((value) {
+      grabChatPartners();
+    });
+    checkPostCount();
+  }
 
+  //checks how many posts the user has made
+  //the user can't ask for a friend recommendation unless they post at least once
   Future <void> checkPostCount() async {
     FirebaseDatabase.instance.ref().child("userPost").child(getUID()).once().then((event){
       var info = event.snapshot.value as Map;
@@ -44,6 +43,8 @@ class _ChatSelectorState extends State<ChatSelector> {
     });
   }
 
+  //checks any invites the user has sent out
+  //if any invite was accepted, then add a new friend to the user's friend list
   Future<void> checkInvites() async {
     //read all invites
     await FirebaseDatabase.instance.ref().child("userInvite").once().
@@ -82,10 +83,11 @@ class _ChatSelectorState extends State<ChatSelector> {
     });
   }
 
-  Future <void> GrabChatPartners() async
+  //gets a list of all the users friends
+  Future <void> grabChatPartners() async
   {
-    List<String> uid1 = [];
-    List<String> partner1 = [];
+    List<String> temp_uids = [];
+    List<String> temp_partners = [];
 
     //1. Get a list of all friends from FirebaseDatabase
     await FirebaseDatabase.instance.ref().child("userFriend/" + getUID()).once()
@@ -95,26 +97,24 @@ class _ChatSelectorState extends State<ChatSelector> {
 
       friends.forEach((key, value) {
         print(key.toString());
-        uid1.add(key);
+        temp_uids.add(key);
       });
     }).catchError((error){
       print("You failed to grab your list of friends:" + error.toString());
     });
 
     //2. Look up friend UIDS through FirebaseDatabase to get names
-
     await FirebaseDatabase.instance.ref().child("userProfile").once()
         .then((event) {
           print("Successfully grabbed user profiles");
           var profiles = event.snapshot.value as Map;
-          List<String> partner1 = [];
-          for(String u in uid1){
-            partner1.add(profiles[u]['Username']);
+          for(String u in temp_uids){
+            temp_partners.add(profiles[u]['Username']);
           }
 
           setState (() {
-            UIDs = uid1;
-            PartnerNames = partner1;
+            UIDs = temp_uids;
+            partnerNames = temp_partners;
           });
     }).catchError((error){
       print("You failed to print user profile:" + error.toString());
@@ -122,6 +122,7 @@ class _ChatSelectorState extends State<ChatSelector> {
     await getAllImages();
   }
 
+  //fetches a collection of all the user's friends' profile pics
   Future<void> getAllImages() async {
     profilePics.clear();
 
@@ -133,13 +134,14 @@ class _ChatSelectorState extends State<ChatSelector> {
     }
   }
 
+  //fetches a profile pic given an index from the UID list
   Future<void> getImage(int index) async {
     String UIDToLookUp = UIDs[index];
     await FirebaseStorage.instance.ref().child("userProfile").child(UIDToLookUp).child("pic.jpeg").getDownloadURL()
         .then((url) {
       profilePics.add(
           ProfilePicture(
-            name: PartnerNames[index],
+            name: partnerNames[index],
             fontsize: 20,
             radius: 30,
             img: url,
@@ -153,6 +155,8 @@ class _ChatSelectorState extends State<ChatSelector> {
     });
   }
 
+  //creates a widget that contains information about a user's given friend.
+  //when tapped, it will navigate to a chat page.
   Widget UserButton(String name, String UID, Widget pic) {
     return SizedBox(
       height: 75,
@@ -202,14 +206,13 @@ class _ChatSelectorState extends State<ChatSelector> {
                 ],
               ),
             )
-
           ],
         ),
-
       ),
     );
   }
 
+  //recommend a friend using a sentiment analysis AI
   Future<dynamic> sentimentFriendSelector() async {
     String url = "https://userpostsentimentanalysis.marisabelchang.repl.co/" + getUID();
     String pickedUID;
@@ -249,6 +252,7 @@ class _ChatSelectorState extends State<ChatSelector> {
     return [pickedUID, pickedName, pickedDescription];
   }
 
+  //recommend a friend using a random number generator
   Future <dynamic> debugFriendsSelector() async {
     List<String> UIDS = [];
     List<String> partners = [];
@@ -291,12 +295,13 @@ class _ChatSelectorState extends State<ChatSelector> {
     return [pickedUID, pickedName, pickedDescription];
   }
 
+  //get rid of a friend and the subsequent chat log
   Future <void> removeFriend(String UID) async {
     //remove friend from your list
     await FirebaseDatabase.instance.ref().child("userFriend/" + getUID()).child(UID).remove()
         .then((event){
           print("You successfully removed friend.");
-          GrabChatPartners();
+          grabChatPartners();
     })
         .catchError((error){
           print("You failed to remove friend.");
@@ -311,6 +316,7 @@ class _ChatSelectorState extends State<ChatSelector> {
     });
   }
 
+  //creates an invite log in firebase database
   Future<void> sendFriendRequest(String UID) async {
     await FirebaseDatabase.instance.ref().child("userInvite").update({
       getUID()+"->"+UID : false
@@ -321,6 +327,7 @@ class _ChatSelectorState extends State<ChatSelector> {
     });
   }
 
+  //a "recommend me a friend" button
   Widget addButton() {
     if (canSendRequest) {
       return FloatingActionButton(
@@ -331,7 +338,7 @@ class _ChatSelectorState extends State<ChatSelector> {
               {
                 showDialog(
                   context: context,
-                  builder: (BuildContext context) => _buildPopupDialog(context, value[0], value[1], value[2]),
+                  builder: (BuildContext context) => showRecommendationPopUp(context, value[0], value[1], value[2]),
                 );
               }
           });
@@ -343,7 +350,8 @@ class _ChatSelectorState extends State<ChatSelector> {
     }
   }
 
-  Widget _buildPopupDialog(BuildContext context, String UID, String username, String description) {
+  //show a popup after a recommendation has been found.
+  Widget showRecommendationPopUp(BuildContext context, String UID, String username, String description) {
     return AlertDialog(
       title: Text('Recommended Friends'),
       content: Column(
@@ -407,7 +415,7 @@ class _ChatSelectorState extends State<ChatSelector> {
                 itemCount: UIDs.length,
                 itemBuilder: (BuildContext context, int index) {
                   if (index < profilePics.length)
-                    return UserButton(PartnerNames[index], UIDs[index], profilePics[index]);
+                    return UserButton(partnerNames[index], UIDs[index], profilePics[index]);
                   else return Text("Loading...");
                 },
                 separatorBuilder: (BuildContext context, int index) => const Divider(),

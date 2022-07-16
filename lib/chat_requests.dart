@@ -3,7 +3,7 @@ import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_profile_picture/flutter_profile_picture.dart';
 
-import 'Chat.dart';
+import 'chat.dart';
 import 'basics.dart';
 
 class ChatRequests extends StatefulWidget {
@@ -22,10 +22,11 @@ class _ChatRequestsState extends State<ChatRequests> {
 
   _ChatRequestsState()
   {
-    GrabChatInvites();
+    grabChatInvites();
   }
 
-  Future<void> GrabChatInvites() async {
+  //gets a list of users who have sent an invite to this one
+  Future<void> grabChatInvites() async {
     //all temporary lists
     List<String> temp_uids= [];
     List<String> temp_partners = [];
@@ -79,6 +80,7 @@ class _ChatRequestsState extends State<ChatRequests> {
     setState(() {});
   }
 
+  //fetches a collection of all the user's friends' profile pics
   Future<void> getAllImages() async {
     profilePics.clear();
 
@@ -89,6 +91,7 @@ class _ChatRequestsState extends State<ChatRequests> {
     }
   }
 
+  //fetches a profile pic given an index from the UID list
   Future<void> getImage(int index) async {
     String UIDToLookUp = UIDs[index];
     await FirebaseStorage.instance.ref().child("userProfile").child(UIDToLookUp).child("pic.jpeg").getDownloadURL()
@@ -110,6 +113,8 @@ class _ChatRequestsState extends State<ChatRequests> {
     });
   }
 
+  //creates a widget that contains information about a requesting user.
+  //when tapped, it adds them as a friend.
   Widget UserButton(String name, String UID, Widget pic, String description) {
     return Container(
       constraints: BoxConstraints(
@@ -158,7 +163,7 @@ class _ChatRequestsState extends State<ChatRequests> {
               IconButton(
                   onPressed: ()
                   {
-                    addFriend(UID).then((value) => GrabChatInvites());
+                    addFriend(UID).then((value) => grabChatInvites());
                     },
                   icon: Icon(Icons.add))
             ],
@@ -168,6 +173,8 @@ class _ChatRequestsState extends State<ChatRequests> {
     );
   }
 
+  //adds the user as a friend in firebase database.
+  //it also changes the invite status to accepted.
   Future <void> addFriend(String UID) async {
     //generate the path name
     //the other user sent the invite, so it's their UID, then ours
@@ -193,7 +200,7 @@ class _ChatRequestsState extends State<ChatRequests> {
       print("You failed to add the friend." + error.toString());
     });
 
-    GrabChatInvites();
+    grabChatInvites();
   }
 
   @override

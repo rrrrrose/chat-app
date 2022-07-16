@@ -1,9 +1,9 @@
-import 'package:chat_app/profilePage.dart';
+import 'package:chat_app/profile_page.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_database/firebase_database.dart';
 import 'package:flutter/material.dart';
 
-import 'SignUp.dart';
+import 'sign_up.dart';
 class Login extends StatefulWidget {
   const Login({Key? key}) : super(key: key);
 

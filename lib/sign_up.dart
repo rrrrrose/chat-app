@@ -1,12 +1,12 @@
 
 import 'package:chat_app/basics.dart';
-import 'package:chat_app/profilePage.dart';
+import 'package:chat_app/profile_page.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_database/firebase_database.dart';
 import 'package:flutter/material.dart';
 
-import 'Login.dart';
+import 'sign_in.dart';
 class SignUp extends StatefulWidget {
   const SignUp({Key? key}) : super(key: key);
 
@@ -16,6 +16,14 @@ class SignUp extends StatefulWidget {
 
 class _SignUpState extends State<SignUp> {
 
+  TextEditingController emailController = TextEditingController();
+  TextEditingController passwordController = TextEditingController();
+  TextEditingController usernameController = TextEditingController();
+
+  bool signUpFailed = false;
+  String failureMessage = "";
+
+  //Ensures that the username is at most 18 characters.
   bool validateName(String username) {
     if (username.length > 18)
       {
@@ -28,6 +36,7 @@ class _SignUpState extends State<SignUp> {
     return true;
   }
 
+  //Attempts to set the user's data after signup, notably username and description.
   Future<void> setData() async{
     String UID = FirebaseAuth.instance.currentUser!.uid;
     await FirebaseDatabase.instance.ref().child("userProfile/"+UID).set(
@@ -40,6 +49,8 @@ class _SignUpState extends State<SignUp> {
       print("Failed to set default data.");
     });
   }
+
+  //Attempts to sign in the user after a successful sign up.
   Future<void> signin() async{
     await FirebaseAuth.instance.signInWithEmailAndPassword(
         email: emailController.text,
@@ -50,6 +61,8 @@ class _SignUpState extends State<SignUp> {
       print("You failed to login.");
     });
   }
+
+  //Attempts to sign up the user.
   Future<void> createUser() async{
     await FirebaseAuth.instance.createUserWithEmailAndPassword(
         email: emailController.text,
@@ -73,13 +86,6 @@ class _SignUpState extends State<SignUp> {
       });
     });
   }
-
-  TextEditingController emailController = TextEditingController();
-  TextEditingController passwordController = TextEditingController();
-  TextEditingController usernameController = TextEditingController();
-
-  bool signUpFailed = false;
-  String failureMessage = "";
 
   @override
   Widget build(BuildContext context) {

@@ -31,18 +31,19 @@ class _ChatState extends State<Chat> {
     convoName = generateConvoName(partnerUID);
 
     //get user names
-    GetUsername();
+    getUsername();
 
     //get chat log
-    GetChatLogs();
+    getChatLogs();
 
     //update chat logs whenever firebase changes
     FirebaseDatabase.instance.ref().child("userChat/" + convoName).limitToLast(1).onChildAdded.listen((event) {
-      GetChatLogs();
+      getChatLogs();
     });
   }
 
-  Future <void> GetChatLogs () async {
+  //grabs a list of all chat logs for this conversation
+  Future <void> getChatLogs () async {
     await FirebaseDatabase.instance.ref().child("userChat/" + convoName).once()
         .then((event) {
       print("Successfully grabbed user chat");
@@ -62,8 +63,9 @@ class _ChatState extends State<Chat> {
       print("You failed to load user chat:" + error.toString());
     });
   }
-  
-  Future <void> GetUsername() async {
+
+  //gets the partner's username
+  Future <void> getUsername() async {
     print(partnerUID);
     await FirebaseDatabase.instance.ref().child("userProfile/" + partnerUID).once()
         .then((event){
@@ -78,6 +80,7 @@ class _ChatState extends State<Chat> {
     });
   }
 
+  //adds a message to the convo log, with a timestamp
   Future <void> sendMessage() async {
     await FirebaseDatabase.instance.ref().child("userChat/" + convoName + "/" + DateTime.now().millisecondsSinceEpoch.toString())
         .set({
@@ -92,6 +95,7 @@ class _ChatState extends State<Chat> {
     });
   }
 
+  //creates a widget containing information about a post, including content and timestamp.
   Widget loadMessage(int index) {
     var post = _posts[index];
     int timeStamp = post["timestamp"];
@@ -137,6 +141,7 @@ class _ChatState extends State<Chat> {
 
   }
 
+  //creates a widget containing information about a partner's post, including content and timestamp.
   Widget loadPartnerMessage(int index) {
     var post = _posts[index];
     int timeStamp = post["timestamp"];
@@ -184,6 +189,8 @@ class _ChatState extends State<Chat> {
     );
   }
 
+  //automatically scrolls down to the bottom.
+  //this is called when a post is made.
   void scrollDown() {
     if (listScrollController.hasClients) {
       final position = listScrollController.position.maxScrollExtent;

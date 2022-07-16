@@ -1,11 +1,11 @@
 import 'package:firebase_core/firebase_core.dart';
 import 'firebase_options.dart';
-import 'package:chat_app/profilePage.dart';
+import 'package:chat_app/profile_page.dart';
 import 'package:flutter/material.dart';
 
-import 'Login.dart';
-import 'Post.dart';
-import 'SignUp.dart';
+import 'sign_in.dart';
+import 'post.dart';
+import 'sign_up.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();

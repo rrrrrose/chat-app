@@ -1,7 +1,7 @@
 import 'dart:io';
 import 'dart:ui';
 
-import 'package:chat_app/ChatRequests.dart';
+import 'package:chat_app/chat_requests.dart';
 import 'package:date_format/date_format.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_database/firebase_database.dart';
@@ -10,9 +10,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_profile_picture/flutter_profile_picture.dart';
 import 'package:image_picker/image_picker.dart';
 
-import 'ChatSelector.dart';
-import 'Login.dart';
-import 'Post.dart';
+import 'chat_selector.dart';
+import 'sign_in.dart';
+import 'post.dart';
 import 'basics.dart';
 class ProfilePage extends StatefulWidget {
   const ProfilePage({Key? key}) : super(key: key);
@@ -24,6 +24,7 @@ class ProfilePage extends StatefulWidget {
 
 class _ProfilePageState extends State<ProfilePage> {
 
+  //used to let user change their profile
   TextEditingController usernameController = TextEditingController();
   TextEditingController descriptionController = TextEditingController();
 
@@ -31,23 +32,86 @@ class _ProfilePageState extends State<ProfilePage> {
   TextEditingController emailController = TextEditingController();
   TextEditingController passwordController = TextEditingController();
 
+  //stores user's profile pic (if it exists)
   var image;
   var imageWidget;
 
   int currentPageIndex = 0;
+
+  //will eventually match the user's profile info
   String name = "";
   String description = "";
+
+  //will eventually store user's posts
   List<String> date = [];
   List<String> content = [];
 
+  _ProfilePageState(){
+    getUserInfo();
+    getPost();
+    GetImage();
+    print("content of posts: " + content.toString());
+  }
+
+  //grabs the user's profile information and profile pic
+  Future<void> getUserInfo() async {
+    String UID = FirebaseAuth.instance.currentUser!.uid;
+    FirebaseDatabase.instance.ref().child("userProfile/"+UID).once().then((event) {
+      print("Retrived username and password");
+      var info = event.snapshot.value as Map;
+      setState((){
+        name = info["Username"];
+        print(name);
+        description = info["Description"];
+        print(description);
+      });
+    }).catchError((error){
+      print("You failed to load information." + error.toString());
+    });
+  }
+
+  //grabs the user's posts
+  Future<void> getPost() async {
+    String UID = FirebaseAuth.instance.currentUser!.uid;
+    FirebaseDatabase.instance.ref().child("userPost/"+UID).once().
+    then((event) {
+      var info = event.snapshot.value as Map;
+      print("Grabbed info: " + info.toString());
+      List<String> grabbedDate = [];
+      List<String> grabbedContent = [];
+      info.forEach((key, value) {
+        grabbedDate.add(key);
+      });
+
+      //sort timestamps
+      grabbedDate.sort((a,b)=>int.parse(b).compareTo(int.parse(a)));
+
+      //add date based on sorted timestamp
+      for (var timestamp in grabbedDate) {
+        grabbedContent.add(info[timestamp]);
+      }
+
+      setState((){
+        date = grabbedDate;
+        content = grabbedContent;
+      });
+    }).catchError((error){
+      print("You failed to load post." + error.toString());
+    });
+
+  }
+
+  //ensure that name is at most 18 characters
   bool validateName(String username) {
     return (username.length < 19);
   }
 
+  //ensure that the description is under 125 characters
   bool validateDescription(String description) {
     return (description.length < 125);
   }
 
+  //presents the pop up to ask user for confirmation for account deletion
   Widget showDeletionPopUp(BuildContext context) {
     return AlertDialog(
       title: Text("Confirm deletion"),
@@ -85,11 +149,15 @@ class _ProfilePageState extends State<ProfilePage> {
 
   }
 
+  //attempts to delete user's account
   Future<void> tryDeleteAccount() async {
+    //sign in first
+    //firebase will only let an account be deleted if it was authenticated at most 5 minutes prior to the operation request
     await FirebaseAuth.instance.signInWithEmailAndPassword(
         email: emailController.text,
         password: passwordController.text
     ).then((value) async {
+      //once the account has been verified, go ahead and start deleting data
       print("Account signed in. Deletion verified.");
       await deleteAccountData();
     }).catchError((error) {
@@ -97,36 +165,32 @@ class _ProfilePageState extends State<ProfilePage> {
     });
   }
 
-  Future<void> deleteAuthAccount() async {
-    await FirebaseAuth.instance.currentUser!.delete().then((value) {
-      print("Account successfully deleted.");
-    }).catchError((error) {
-      print("Could not delete account: " + error.toString());
-    });
-  }
-
+  //deletes anything in the database that is related to the user's UID
   Future<void> deleteAccountData() async {
     await deleteProfileInfo();
     await deleteProfilePic();
     await deletePosts();
     await deleteChatLogs();
-    await deleteAllFriends();
-    await deleteFriendsList();
+    await deleteAllFriends(); //delete yourself from other friend's list
+    await deleteFriendsList(); //delete your own friends list
     await deleteInviteList();
     await deleteAuthAccount();
 
+    //sign out the user
     await FirebaseAuth.instance.signOut().then((value) {
       print("signed out");
     }).catchError((error) {
       print("could not sign out");
     });
 
+    //kick out to login page
     Navigator.push(
       context,
       MaterialPageRoute(builder: (context) => const Login()),
     );
   }
 
+  //deletes user's profile info
   Future<void> deleteProfileInfo() async {
     await FirebaseDatabase.instance.ref().child("userProfile").child(getUID()).remove().then((value) {
       print("Profile info successfully deleted");
@@ -135,6 +199,7 @@ class _ProfilePageState extends State<ProfilePage> {
     });
   }
 
+  //deletes user's posts
   Future<void> deletePosts() async {
     await FirebaseDatabase.instance.ref().child("userPost").child(getUID()).remove().then((value) {
       print("Posts successfully deleted");
@@ -143,6 +208,7 @@ class _ProfilePageState extends State<ProfilePage> {
     });
   }
 
+  //deletes all chat logs containing user's UID
   Future<void> deleteChatLogs() async {
     await FirebaseDatabase.instance.ref().child("userFriend").child(getUID()).once().then((event) {
       //map of all friends
@@ -171,6 +237,7 @@ class _ProfilePageState extends State<ProfilePage> {
     });
   }
 
+  //deletes the user's personal friends list
   Future<void> deleteFriendsList() async {
     await FirebaseDatabase.instance.ref().child("userFriend").child(getUID()).remove().then((value) {
       print("Deleted your friends list.");
@@ -179,6 +246,7 @@ class _ProfilePageState extends State<ProfilePage> {
     });
   }
 
+  //delete's the user from all their other friends' lists
   Future<void> deleteAllFriends() async {
     await FirebaseDatabase.instance.ref().child("userFriend").child(getUID()).once().then((event) {
       //map of all friends
@@ -207,6 +275,7 @@ class _ProfilePageState extends State<ProfilePage> {
     });
   }
 
+  //deletes the user's profile pic (if there is one)
   Future<void> deleteProfilePic() async {
     await FirebaseStorage.instance.ref().child("userProfile/" + getUID() + "/" + "pic.jpeg").delete().then((value) {
       print("Profile pic successfully deleted");
@@ -214,7 +283,8 @@ class _ProfilePageState extends State<ProfilePage> {
       print("Could not delete profile picture: " + error.toString());
     });
   }
-  
+
+  //deletes any invites the user has sent that are still open
   Future<void> deleteInviteList() async {
     //read all invites
     //if invite contains "getUID()->", delete that
@@ -238,6 +308,16 @@ class _ProfilePageState extends State<ProfilePage> {
     });
   }
 
+  //delete's user's account from authentication services
+  Future<void> deleteAuthAccount() async {
+    await FirebaseAuth.instance.currentUser!.delete().then((value) {
+      print("Account successfully deleted.");
+    }).catchError((error) {
+      print("Could not delete account: " + error.toString());
+    });
+  }
+
+  //creates a widget containing info about a post
   Widget generatePostVisual(int index)
   {
     return Container(
@@ -288,72 +368,15 @@ class _ProfilePageState extends State<ProfilePage> {
     );
   }
 
-  Future<void> getUserInfo() async {
-
-    String UID = FirebaseAuth.instance.currentUser!.uid;
-    FirebaseDatabase.instance.ref().child("userProfile/"+UID).once().then((event) {
-      print("Retrived username and password");
-      var info = event.snapshot.value as Map;
-      setState((){
-        name = info["Username"];
-        print(name);
-        description = info["Description"];
-        print(description);
-      });
-    }).catchError((error){
-      print("You failed to load information." + error.toString());
-    });
-  }
-  Future<void> getPost() async {
-    String UID = FirebaseAuth.instance.currentUser!.uid;
-    FirebaseDatabase.instance.ref().child("userPost/"+UID).once().
-    then((event) {
-      var info = event.snapshot.value as Map;
-      print("Grabbed info: " + info.toString());
-      List<String> grabbedDate = [];
-      List<String> grabbedContent = [];
-      info.forEach((key, value) {
-        grabbedDate.add(key);
-      });
-
-      //sort timestamps
-      grabbedDate.sort((a,b)=>int.parse(b).compareTo(int.parse(a)));
-
-      //add date based on sorted timestamp
-      for (var timestamp in grabbedDate) {
-        grabbedContent.add(info[timestamp]);
-      }
-
-      setState((){
-        date = grabbedDate;
-        content = grabbedContent;
-      });
-    }).catchError((error){
-      print("You failed to load post." + error.toString());
-    });
-
-  }
-
-  _ProfilePageState(){
-    getUserInfo();
-    getPost();
-    GetImage();
-    print("content of posts: " + content.toString());
-  }
-
-  Widget _buildPopupDialog(BuildContext context) {
+  //shows a popup that lets the user edit their name, description, and profile picture
+  Widget showEditPopUp(BuildContext context) {
     return AlertDialog(
       title: Text('Edit your profile'),
       content: Column(
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text(
-              "New Username",
-            style: TextStyle(
-
-            ),
-          ),
+          const Text("New Username"),
           TextField(
             maxLines: 1,
             controller: usernameController,
@@ -362,35 +385,21 @@ class _ProfilePageState extends State<ProfilePage> {
               hintText: '',
             ),
           ),
-          Text(
-            "New Bio",
-            style: TextStyle(
-
-            ),
-          ),
+          Text("New Bio"),
            TextField(
             minLines: 4,
             maxLines: 6,
             controller: descriptionController,
-            decoration: InputDecoration(
+            decoration: const InputDecoration(
               border: OutlineInputBorder(),
               hintText: '',
             ),
           ),
-
           IconButton(
             icon: const Icon(Icons.upload),
             onPressed: GallerySelection,
-
           ),
-
-
-
         ],
-        //textfield: new username
-        //textfield: new description
-        //icon button for photo upload
-
       ),
       actions: <Widget>[
          Row(
@@ -398,14 +407,16 @@ class _ProfilePageState extends State<ProfilePage> {
            children: [
              ElevatedButton(
               onPressed: () {
-
-
+                //validate inputs
                 if (usernameController.text.isNotEmpty && validateName(usernameController.text)) changeUsername(usernameController.text);
                 if (descriptionController.text.isNotEmpty && validateDescription(descriptionController.text)) changeDescription(descriptionController.text);
                 if (image != null) changeProfilePic();
 
+                //set texts to empty
                 usernameController.text = "";
                 descriptionController.text = "";
+
+                //get rid of popup
                 Navigator.of(context).pop();
               },
               child: const Text('Close'),
@@ -425,7 +436,6 @@ class _ProfilePageState extends State<ProfilePage> {
                  fontSize: 15,
                  decoration: TextDecoration.underline,
                ),
-
              )),
              TextButton(
                  style: TextButton.styleFrom(
@@ -452,6 +462,7 @@ class _ProfilePageState extends State<ProfilePage> {
 
   }
 
+  //changes the user's username
   Future <void> changeUsername(String newName) async {
     await FirebaseDatabase.instance.ref().child("userProfile/" + getUID()).update(
       {
@@ -467,6 +478,7 @@ class _ProfilePageState extends State<ProfilePage> {
     });
   }
 
+  //changes the user's description
   Future <void> changeDescription(String newDescription) async {
     await FirebaseDatabase.instance.ref().child("userProfile/" + getUID()).update(
         {
@@ -482,6 +494,7 @@ class _ProfilePageState extends State<ProfilePage> {
     });
   }
 
+  //changes the user's profile pic
   Future<void> changeProfilePic() async
   {
     await FirebaseStorage.instance.ref().child("userProfile/" + getUID() + "/" + 'pic.jpeg').putFile(File(image.path))
@@ -493,6 +506,7 @@ class _ProfilePageState extends State<ProfilePage> {
     });
   }
 
+  //fetches the user's profile pic from firestore (if there is one)
   Future <void> GetImage () async {
     FirebaseStorage.instance.ref().child("userProfile/" + getUID() + "/" + "pic.jpeg").getDownloadURL()
         .then((url){
@@ -516,6 +530,7 @@ class _ProfilePageState extends State<ProfilePage> {
     });
   }
 
+  //brings up image gallery so the app can get a pic from the user
   Future <void> GallerySelection () async {
     await ImagePicker().pickImage(source: ImageSource.gallery)
         .then((event){
@@ -527,7 +542,6 @@ class _ProfilePageState extends State<ProfilePage> {
     });
 
   }
-
 
   Widget homeScreenUI()
   {
@@ -586,7 +600,7 @@ class _ProfilePageState extends State<ProfilePage> {
                                   IconButton(onPressed: (){
                                     showDialog(
                                       context: context,
-                                      builder: (BuildContext context) => _buildPopupDialog(context),
+                                      builder: (BuildContext context) => showEditPopUp(context),
                                     );
                                   }, icon: Icon(Icons.settings))
                                 ],
