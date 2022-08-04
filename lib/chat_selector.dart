@@ -104,12 +104,25 @@ class _ChatSelectorState extends State<ChatSelector> {
     });
 
     //2. Look up friend UIDS through FirebaseDatabase to get names
+    List<String> invalidUIDs = [];
+
     await FirebaseDatabase.instance.ref().child("userProfile").once()
         .then((event) {
           print("Successfully grabbed user profiles");
           var profiles = event.snapshot.value as Map;
           for(String u in temp_uids){
-            temp_partners.add(profiles[u]['Username']);
+            try {
+              temp_partners.add(profiles[u]["Username"]);
+            } catch (e, s) {
+              print(s);
+              //found user that does not exist
+              invalidUIDs.add(u);
+              continue;
+            }
+          }
+
+          for(String u in invalidUIDs){
+            temp_uids.remove(u);
           }
 
           setState (() {

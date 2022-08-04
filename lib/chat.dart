@@ -201,25 +201,12 @@ class _ChatState extends State<Chat> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      appBar: AppBar(
+        title: Text(partnersName),
+        backgroundColor: Color(0xff7986cb),
+      ),
       body: Column(
         children: [
-          Expanded(
-            flex: 10,
-            child: Container(
-                color: Color(0xff7986cb),
-                width: MediaQuery.of(context).size.width,
-                child: Center(
-                  child: Text(
-                      partnersName,
-                      style: TextStyle(
-                        fontSize: 25,
-                        fontWeight: FontWeight.bold,
-                        color: Colors.white
-                      ),
-                  ),
-                )
-            ),
-          ),
           Expanded (
               flex: 90,
               child: ListView.builder(
